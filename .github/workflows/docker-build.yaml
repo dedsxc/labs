@@ -1,0 +1,65 @@
+name: Build and Push Docker Images
+on:
+  push:
+    branches:
+      - main
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  GHCR_REGISTRY_REPO: ${{ secrets.GHCR_REPO }}
+
+jobs:
+  discover-modified-containers:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.modified-containers.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 2
+
+      - name: Get list of modified container directories
+        id: modified-containers
+        run: |
+          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $2}' | grep -v '^\.' | sort | uniq)
+          echo "modified_containers=$modified_containers"
+          if [ -z "$modified_containers" ]; then
+            echo "No changes detected in containers."
+            matrix='{[]}'
+          else
+            matrix=$(jq -nc --arg containers "$modified_containers" '$containers | split("\n")')
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    needs: discover-modified-containers
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        container: ${{ fromJson(needs.discover-modified-containers.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      
+      - name: Get repository name
+        id: get_repo_name
+        run: |
+          result=$(echo "$GITHUB_REPOSITORY" | awk -F'/' '{print $2}')
+          echo "repo_name=$result" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+    
+      - name: Configure Docker
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ secrets.CI_BOT_USERNAME }}
+          password: ${{ secrets.CI_BOT_TOKEN }}
+
+      - name: Build-Push image
+        run: |
+          version=$(./${{ matrix.container }}/VERSION)
+          platform=$(cat ./${{ matrix.container }}/PLATFORM)
+          docker buildx build --push --platform $platform -t ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/${{ matrix.container }}:$version ./${{ matrix.container }}

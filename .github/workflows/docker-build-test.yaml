@@ -1,0 +1,156 @@
+name: Build Docker Images
+on:
+  pull_request:
+    paths:
+      - "containers/**"
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  GHCR_REGISTRY_REPO: dedsxc
+
+jobs:
+  discover-modified-containers:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.modified-containers.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 2
+
+      - name: Get list of modified container directories
+        id: modified-containers
+        run: |
+          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $2}' | grep -v '^\.' | sort | uniq)
+          echo "modified_containers=$modified_containers"
+          if [ -z "$modified_containers" ]; then
+            echo "No changes detected in containers."
+            matrix='{[]}'
+          else
+            matrix=$(jq -nc --arg containers "$modified_containers" '$containers | split("\n")')
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-test:
+    needs: discover-modified-containers
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        container: ${{ fromJson(needs.discover-modified-containers.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      
+      - name: Get repository name
+        id: get_repo_name
+        run: |
+          result=$(echo "$GITHUB_REPOSITORY" | awk -F'/' '{print $2}')
+          echo "repo_name=$result" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+    
+      - name: Configure Docker
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ secrets.CI_BOT_USERNAME }}
+          password: ${{ secrets.CI_BOT_TOKEN }}
+
+      - name: Build-Push image
+        run: |
+          version=$(./${{ matrix.container }}/VERSION)
+          platform=$(cat ./${{ matrix.container }}/PLATFORM)
+          docker buildx build --push --platform $platform -t ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/${{ matrix.container }}:pr-${{ github.event.pull_request.number }} ./${{ matrix.container }} 
+
+      # Setup and run vulnerability scanner
+      - name: Setup trivy markdown template
+        run: |
+          cat <<EOF | tee github-markdown.tpl
+            {{- if . }}
+            {{- range . }}
+            <h3>Target <code>{{ escapeXML .Target }}</code></h3>
+            {{- if (eq (len .Vulnerabilities) 0) }}
+            <h4>No Vulnerabilities found</h4>
+            {{- else }}
+            <h4>Vulnerabilities ({{ len .Vulnerabilities }})</h4>
+            <table>
+                <tr>
+                    <th>Package</th>
+                    <th>ID</th>
+                    <th>Severity</th>
+                    <th>Installed Version</th>
+                    <th>Fixed Version</th>
+                </tr>
+                {{- range .Vulnerabilities }}
+                <tr>
+                    <td><code>{{ escapeXML .PkgName }}</code></td>
+                    <td>{{ escapeXML .VulnerabilityID }}</td>
+                    <td>{{ escapeXML .Severity }}</td>
+                    <td>{{ escapeXML .InstalledVersion }}</td>
+                    <td>{{ escapeXML .FixedVersion }}</td> 
+                </tr>
+                {{- end }}
+            </table>
+            {{- end }}
+            {{- if (eq (len .Misconfigurations ) 0) }}
+            <h4>No Misconfigurations found</h4>
+            {{- else }}
+            <h4>Misconfigurations</h4>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>ID</th>
+                    <th>Check</th>
+                    <th>Severity</th>
+                    <th>Message</th>
+                </tr>
+                {{- range .Misconfigurations }}
+                <tr>
+                    <td>{{ escapeXML .Type }}</td>
+                    <td>{{ escapeXML .ID }}</td>
+                    <td>{{ escapeXML .Title }}</td>
+                    <td>{{ escapeXML .Severity }}</td>
+                    <td>
+                      {{ escapeXML .Message }}
+                      <br><a href={{ escapeXML .PrimaryURL | printf "%q" }}>{{ escapeXML .PrimaryURL }}</a></br>
+                    </td>
+                </tr>
+                {{- end }}
+            </table>
+            {{- end }}
+            {{- end }}
+            {{- else }}
+            <h3>Trivy Returned Empty Report</h3>
+            {{- end }}
+
+      - name: Generate Token
+        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2
+        id: app-token
+        with:
+          app-id: "${{ secrets.BOT_APP_ID }}"
+          private-key: "${{ secrets.BOT_APP_PRIV_KEY }}"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        id: trivy_scanner
+        with:
+          image-ref: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/${{ matrix.container }}:pr-${{ github.event.pull_request.number }}
+          format: template
+          template: "@github-markdown.tpl"
+          output: "trivy.md"
+          vuln-type: 'os,library'
+          github-pat: ${{ steps.app-token.outputs.token }}
+
+      - name: Summary report trivy
+        run: cat trivy.md >> $GITHUB_STEP_SUMMARY
+      
+     
+
+      - name: Push trivy comment on PR
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: 'trivy.md'
+          token: ${{ steps.app-token.outputs.token }}
