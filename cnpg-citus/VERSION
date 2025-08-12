@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Need a fix version https://cloudnative-pg.io/documentation/1.23/container_images/
+version="16.9"
+printf "%s" "${version}"
