@@ -2,7 +2,8 @@ name: Build Docker Images
 on:
   pull_request:
     paths:
-      - "containers/**"
+      - "*/**"
+      - "!.*"  
 
 env:
   GHCR_REGISTRY: ghcr.io
@@ -22,7 +23,7 @@ jobs:
       - name: Get list of modified container directories
         id: modified-containers
         run: |
-          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $2}' | grep -v '^\.' | sort | uniq)
+          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $1}' | grep -v '^\.' | sort | uniq)
           echo "modified_containers=$modified_containers"
           if [ -z "$modified_containers" ]; then
             echo "No changes detected in containers."

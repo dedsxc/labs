@@ -3,10 +3,13 @@ on:
   push:
     branches:
       - main
+    paths:
+        - "*/**"
+        - "!.*"  
 
 env:
   GHCR_REGISTRY: ghcr.io
-  GHCR_REGISTRY_REPO: ${{ secrets.GHCR_REPO }}
+  GHCR_REGISTRY_REPO: dedsxc
 
 jobs:
   discover-modified-containers:
@@ -22,7 +25,7 @@ jobs:
       - name: Get list of modified container directories
         id: modified-containers
         run: |
-          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $2}' | grep -v '^\.' | sort | uniq)
+          modified_containers=$(git diff --name-only HEAD~1 HEAD -- "./" | awk -F'/' '{print $1}' | grep -v '^\.' | sort | uniq)
           echo "modified_containers=$modified_containers"
           if [ -z "$modified_containers" ]; then
             echo "No changes detected in containers."
