@@ -1,9 +1,8 @@
 name: Build Docker Images
 on:
   pull_request:
-    paths:
-      - "*/**"
-      - "!.*"  
+    paths-ignore:
+      - ".*"
 
 env:
   GHCR_REGISTRY: ghcr.io
