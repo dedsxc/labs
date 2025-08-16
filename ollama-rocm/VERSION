@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+version="0.11.4"
+printf "%s" "${version}"
