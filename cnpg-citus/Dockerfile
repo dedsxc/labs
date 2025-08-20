@@ -2,13 +2,11 @@ FROM ghcr.io/cloudnative-pg/postgresql:16.10-bookworm@sha256:67a5da8a690c174ed30
 
 USER root 
 
-ENV PG_MAJOR=16
-
 # Install Citus extension
-RUN apt-get update && \
-    apt-get install -y curl && \
-    curl https://install.citusdata.com/community/deb.sh | bash && \
-    apt-get -y install postgresql-${PG_MAJOR}-citus-12.1
+RUN apt-get update && apt-get install -y curl 
+RUN curl https://install.citusdata.com/community/deb.sh | bash 
+RUN CITUS_VERSION=$(apt-cache search postgresql-${PG_MAJOR}-citus | sort -r | head -n1 | awk '{print $1}') && \
+    apt-get -y install ${CITUS_VERSION}
 
 USER postgres
 

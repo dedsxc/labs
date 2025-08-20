@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
-version="0.11.4"
+repo="ollama/ollama"
+version=$(curl -sX GET "https://api.github.com/repos/${repo}/releases/latest" | jq --raw-output '.tag_name' | sed 's/^v//')
 printf "%s" "${version}"
