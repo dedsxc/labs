@@ -3,7 +3,7 @@ FROM ghcr.io/cloudnative-pg/postgresql:17.6-bookworm@sha256:4a0c526f86af3cd6c925
 USER root 
 
 # Install Citus extension
-RUN apt-get update && apt-get install -y curl 
+RUN apt-get update && apt-get install -y curl pgcopydb
 RUN curl https://install.citusdata.com/community/deb.sh | bash 
 RUN CITUS_VERSION=$(apt-cache search postgresql-${PG_MAJOR}-citus | sort -r | head -n1 | awk '{print $1}') && \
     apt-get -y install ${CITUS_VERSION}
