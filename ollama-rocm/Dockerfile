@@ -6,7 +6,7 @@ RUN apk update && apk add curl
 RUN curl -L https://ollama.com/download/ollama-linux-amd64-rocm.tgz -o ollama-linux-amd64-rocm.tgz 
 RUN tar -C /tmp -xzf ollama-linux-amd64-rocm.tgz
 
-FROM ollama/ollama:0.11.7@sha256:c76340da9ed9906b01ed5462ca966b608de93a76c1fbc01123d07034a99f699b
+FROM ollama/ollama:0.11.8@sha256:03eaa1581455ba16e7c954d799e4f44996b60ae668261acd00a0e80a241ed720
 
 RUN useradd --create-home ollama
 
