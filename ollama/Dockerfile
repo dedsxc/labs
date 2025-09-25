@@ -1,4 +1,4 @@
-FROM ollama/ollama:0.12.1@sha256:5aed793ab336d1aac9b132f4b46fddfcfa13b8911def3d275937c8acbd1763e8
+FROM ollama/ollama:0.12.2@sha256:1b80cecb262ee3be70474130aaff1e4949dab741c74b94e819d3f2a2ba520f29
 
 RUN useradd --create-home ollama
 
