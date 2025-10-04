@@ -1,0 +1,12 @@
+---
+# Environment
+- name: production
+  color: "ee0701"
+- name: staging
+  color: "f9fb04"
+
+# Categorie
+- name: github-actions
+  color: "7bd3ea"
+- name: docker
+  color: "7bd3ea"
