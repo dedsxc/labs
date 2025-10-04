@@ -5,7 +5,7 @@
 - name: staging
   color: "f9fb04"
 
-# Categorie
+# Categories
 - name: github-actions
   color: "7bd3ea"
 - name: docker
