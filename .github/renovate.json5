@@ -2,16 +2,32 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
     'config:recommended',
-    'docker:pinDigests',
     'helpers:pinGitHubActionDigests',
     ':pinDevDependencies'
   ],
   packageRules: [
     {
-      description: 'Automerge updates',
-      matchDatasources: ['github-tags', 'docker'],
-      ignoreTests: true,
-      automerge: true
+      "description": "Auto merge GitHub Actions",
+      "groupName": "github-actions",
+      "matchDepTypes": ["action"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    // Containers
+    {
+      "matchFileNames": ["containers/**"],
+      "matchUpdateTypes": ["patch"],
+      "commitMessagePrefix": "fix(containers): "
+    },
+    {
+      "matchFileNames": ["containers/**"],
+      "matchUpdateTypes": ["minor"],
+      "commitMessagePrefix": "feat(containers): "
+    },
+    {
+      "matchFileNames": ["containers/**"],
+      "matchUpdateTypes": ["major"],
+      "commitMessagePrefix": "feat!(containers): "
     }
   ]
 }

@@ -9,8 +9,28 @@ env:
   GHCR_REGISTRY_REPO: dedsxc
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      containers: ${{ steps.set-matrix.outputs.containers }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate matrix of container names
+        id: set-matrix
+        run: |
+          CONTAINERS=$(find ./containers -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | jq -R . | jq -sc .)
+          echo "containers=$CONTAINERS" >> $GITHUB_OUTPUT
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: generate-matrix
+    strategy:
+      # Permet aux autres builds de continuer si l'un échoue
+      fail-fast: false 
+      matrix:
+        container: ${{ fromJSON(needs.generate-matrix.outputs.containers) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -33,14 +53,13 @@ jobs:
 
       - name: Build-Push 
         run: |
-          for container in $(find . -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '%f\n'); do
-            upstream_version=$(./$container/VERSION)
-            current_version=$(curl -sL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.CI_BOT_TOKEN }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/user/packages/container/$container/versions | jq -r '.[] | select(.metadata.container.tags | length > 0) | .metadata.container.tags[]' | grep -v '^pr' | sort -V | tail -n1)
-            if [ "$upstream_version" != "$current_version" ]; then
-              echo -e "\e[32m[+] New version for $container found: $upstream_version\e[0m"
-              platform=$(cat ./$container/PLATFORM)
-              docker buildx build --push --platform $platform -t ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/$container:$upstream_version ./$container
-            else
-              echo "$container is up to date version: $current_version"
-            fi
-          done
+          container="${{ matrix.container }}"
+          upstream_version=$(./containers/$container/VERSION)
+          current_version=$(curl -sL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.CI_BOT_TOKEN }}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/user/packages/container/$container/versions | jq -r '.[] | select(.metadata.container.tags | length > 0) | .metadata.container.tags[]' | grep -v '^pr' | sort -V | tail -n1)
+          if [ "$upstream_version" != "$current_version" ]; then
+            echo -e "\e[32m[+] New version for $container found: $upstream_version\e[0m"
+            platform=$(cat ./containers/$container/PLATFORM)
+            docker buildx build --push --platform $platform -t ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/$container:$upstream_version ./$container
+          else
+            echo "$container is up to date version: $current_version"
+          fi
