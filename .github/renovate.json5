@@ -6,14 +6,21 @@
     ':pinDevDependencies'
   ],
   packageRules: [
+    // Auto merge
     {
       "description": "Auto merge GitHub Actions",
       "groupName": "github-actions",
       "matchDepTypes": ["action"],
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
       "automerge": true
     },
     // Containers
+    {
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "commitMessagePrefix": "chore(containers): ",
+      "automerge": true
+    },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["patch"],
