@@ -10,7 +10,7 @@
     {
       "description": "Auto merge GitHub Actions",
       "groupName": "github-actions",
-      "matchDepTypes": ["action"],
+      "matchDatasources": ["github-tags"],
       "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
       "automerge": true
     },
