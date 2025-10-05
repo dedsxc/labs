@@ -18,23 +18,23 @@
     {
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["digest", "pinDigest"],
-      "commitMessagePrefix": "chore(containers): ",
+      "commitMessagePrefix": "chore({{depName}}): ",
       "automerge": true
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["patch"],
-      "commitMessagePrefix": "fix(containers): "
+      "commitMessagePrefix": "fix({{depName}}): "
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["minor"],
-      "commitMessagePrefix": "feat(containers): "
+      "commitMessagePrefix": "feat({{depName}}): "
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["major"],
-      "commitMessagePrefix": "feat!(containers): "
+      "commitMessagePrefix": "feat!({{depName}}): "
     }
   ]
 }
