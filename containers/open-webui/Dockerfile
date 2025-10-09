@@ -1,4 +1,4 @@
-FROM ghcr.io/open-webui/open-webui:main@sha256:c77fa8da6d702ed064b36d414a9493e0bc5242d9a5a3ea0828c5013cbf35b1d5
+FROM ghcr.io/open-webui/open-webui:main@sha256:5a93a2c0943336d1bc8e3d86773172a7b007e6cb27676f9268e8b272738b70f0
 
 RUN useradd -m user
 RUN chown user:user -R /app/backend
