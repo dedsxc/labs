@@ -36,6 +36,7 @@ jobs:
     needs: discover-modified-containers
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false 
       matrix: 
         container: ${{ fromJson(needs.discover-modified-containers.outputs.matrix) }}
     steps:
