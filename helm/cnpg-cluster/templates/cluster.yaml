@@ -1,0 +1,57 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ printf "%s-cluster" .Release.Name | default "cloudnative-pg-cluster" }}
+  namespace: {{ .Release.Namespace | default "cloudnative-pg" }}
+  annotations: {{ .Values.cluster.annotations | toYaml | nindent 4 }}
+spec:
+  affinity: {{ .Values.cluster.affinity | toYaml | nindent 4 }}
+  instances: {{ .Values.cluster.instances | default 2 }}
+  imageName: {{ .Values.cluster.image.name | default "ghcr.io/cloudnative-pg/postgresql:16.2-16" }}
+  imagePullPolicy: {{ .Values.cluster.image.pullPolicy | default "IfNotPresent" }}
+  {{- if .Values.cluster.imagePullSecrets }}
+  imagePullSecrets:
+    {{- range .Values.cluster.imagePullSecrets }}
+    - name: {{ .name }}
+    {{- end }}
+  {{- end }}
+  storage:
+    size: {{ .Values.cluster.storage.size | default "10Gi" }}
+    storageClass: {{ .Values.cluster.storage.storageClass | default "openebs-hostpath" }}
+  walStorage:
+    size: {{ .Values.cluster.walStorage.size | default "1Gi" }}
+    storageClass: {{ .Values.cluster.walStorage.storageClass | default "openebs-hostpath" }}
+  resources:
+    {{- toYaml .Values.cluster.resources | nindent 4 }}
+  superuserSecret:
+    name: {{ .Values.cluster.superuserSecret | default "cloudnative-pg" }}
+  enablePDB: true
+  enableSuperuserAccess: {{ .Values.cluster.enableSuperuserAccess | default false }}
+  postgresql:
+    shared_preload_libraries:
+      {{- toYaml .Values.cluster.postgresql.shared_preload_libraries | nindent 6 }}
+    parameters:
+      {{- toYaml .Values.cluster.postgresql.parameters | nindent 6 }}  
+  managed:
+    roles:
+      {{- toYaml .Values.cluster.roles | nindent 6 }}
+  {{- if .Values.cluster.monitoring.enabled }}
+  monitoring:
+    enablePodMonitor: true
+    disableDefaultQueries: false
+  {{ end }}
+  {{- if .Values.cluster.backups.enabled }}
+  plugins: {{ .Values.cluster.backups.plugins | toYaml | nindent 2 }}
+  {{ end }}
+
+  bootstrap:
+  {{- if .Values.cluster.recovery.enabled }}
+    recovery: {{ .Values.cluster.recovery.config | toYaml | nindent 6 }}
+  {{- else }}
+    initdb: {{ (and .Values.cluster.bootstrap .Values.cluster.bootstrap.initdb) | default dict | toYaml | nindent 6 }}
+  {{ end }}
+
+  {{- if .Values.cluster.externalClusters.enabled }}
+  externalClusters: 
+  {{- toYaml .Values.cluster.externalClusters.config | nindent 4 }}
+  {{ end }}

@@ -1,0 +1,17 @@
+{{ if .Values.cluster.externalService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-lb
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    cnpg.io/cluster: {{ .Release.Name }}-cluster
+    cnpg.io/instanceRole: {{ .Values.cluster.externalService.targetRole | default "primary" }}
+{{ end }}

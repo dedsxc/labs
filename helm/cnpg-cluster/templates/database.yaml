@@ -1,0 +1,128 @@
+{{- range .Values.database.list }}
+{{- $secretName := default .name .secretName }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ printf "%s" .name }}
+spec:
+  name: {{ .name }}
+  owner: {{ .owner }}
+  cluster:
+    name: {{ printf "%s-%s" $.Release.Name "cluster" }}
+{{- if .extensions }}
+  extensions: {{- toYaml .extensions | nindent 4 }}
+{{- end }}
+---
+{{- if $.Values.database.autoGeneratePassword}}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ $secretName }}
+spec:
+  refreshInterval: "0s"
+  target:
+    template:
+      type: Opaque
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+      data:
+        username: {{ .owner }}
+        password: '{{`{{ .password }}`}}'
+        DB_HOST: {{ printf "%s-cluster" $.Release.Name }}-rw
+        DB_HOST_RO: {{ printf "%s-cluster" $.Release.Name }}-r
+        DB_DATABASE: {{ .name }}
+        DB_CONNECTION_URI: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ printf "%s-cluster" $.Release.Name }}-rw:5432/{{ .name }}'
+        DB_CONNECTION_URI_RO: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ printf "%s-cluster" $.Release.Name }}-r:5432/{{ .name }}'
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ClusterGenerator
+          name: "password-cluster-generator"
+{{- else }}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ $secretName }}
+spec:
+  secretStoreRef:
+    name: vault-secret-store
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  target:
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          cnpg.io/reload: "true"
+  data:
+    - secretKey: username
+      remoteRef:
+        key: {{ $secretName }}
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: {{ $secretName }}
+        property: password
+{{- end }}
+---
+{{- if and .recovery (eq .recovery.enabled true) }}
+apiVersion: batch/v1
+kind: Job
+metadata: 
+  generateName: {{ .name }}-
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+      {{- range $.Values.cluster.imagePullSecrets }}
+        - name: {{ .name }}
+      {{- end }}
+      containers:
+        - name: pgcopydb
+          image: {{ .recovery.imageName | default "ghcr.io/cloudnative-pg/postgresql:16.2-16" }}
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
+          env:
+            - name: DB_SOURCE_HOST
+              value: {{ .recovery.dbSourceHost | quote }}
+            - name: DB_SOURCE_PORT
+              value: {{ .recovery.dbSourcePort | default "5432" | quote }}
+            - name: TABLE_JOBS
+              value: {{ .recovery.tableJobs | default "48" | quote }}
+            - name: INDEX_JOBS
+              value: {{ .recovery.indexJobs | default "16" | quote }}
+            - name: DB_USERNAME_LEGACY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .recovery.dbSourceSecretName }}
+                  key: DB_USERNAME
+            - name: DB_PASSWORD_LEGACY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .recovery.dbSourceSecretName }}
+                  key: DB_PASSWORD
+            - name: DB_DATABASE_LEGACY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .recovery.dbSourceSecretName }}
+                  key: DB_DATABASE         
+          command: [ "sh", "-c" ]
+          args:
+            - |
+              export PGCOPYDB_TARGET_PGURI="postgres://$DB_USERNAME:$password@{{ printf "%s-cluster" $.Release.Name }}-rw:5432/$DB_DATABASE"
+              export PGCOPYDB_SOURCE_PGURI="postgres://$DB_USERNAME_LEGACY:$DB_PASSWORD_LEGACY@$DB_SOURCE_HOST:$DB_SOURCE_PORT/$DB_DATABASE_LEGACY"
+              pgcopydb clone --table-jobs $TABLE_JOBS --index-jobs $INDEX_JOBS \
+                --dir /var/lib/postgresql/$DB_DATABASE-backup \
+                --no-role-passwords --no-owner --no-acl --no-comments --skip-extensions --skip-ext-comments --drop-if-exists
+
+---
+{{ end }}
+{{- end }}
