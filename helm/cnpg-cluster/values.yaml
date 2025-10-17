@@ -3,6 +3,7 @@
 cluster:
   instances: 2
   annotations: {}
+  affinity: {}
   image: 
     name: ghcr.io/cloudnative-pg/postgresql:16.2-16
   storage:

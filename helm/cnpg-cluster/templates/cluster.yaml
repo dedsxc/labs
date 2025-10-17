@@ -29,9 +29,7 @@ spec:
   enableSuperuserAccess: {{ .Values.cluster.enableSuperuserAccess | default false }}
   postgresql:
     shared_preload_libraries:
-      {{- range .Values.cluster.postgresql.shared_preload_libraries }}
-      - {{ . }}
-      {{- end }}
+      {{- toYaml .Values.cluster.postgresql.shared_preload_libraries | nindent 6 }}
     parameters:
       {{- toYaml .Values.cluster.postgresql.parameters | nindent 6 }}  
   managed:
