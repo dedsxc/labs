@@ -1,0 +1,147 @@
+
+# -- Cloudnative-pg cluster configuration
+cluster:
+  instances: 2
+  annotations: {}
+  image: 
+    name: ghcr.io/cloudnative-pg/postgresql:16.2-16
+  storage:
+    storageClass: openebs-hostpath
+    size: 8Gi
+  # -- Activate wal storage for high availability 
+  walStorage:
+    storageClass: openebs-hostpath
+    size: 1Gi
+
+  # -- Enable external service to expose the primary instance
+  externalService:
+    enabled: false
+    targetInstanceRole: primary
+
+  # -- Postgresql configuration
+  postgresql:
+    parameters: 
+      max_connections: "300"
+    
+    # -- Enable extension
+    # shared_preload_libraries: 
+    #   - extension_name
+    shared_preload_libraries: []
+  
+  # -- Admin superuser
+  superuserSecret: ""
+  enableSuperuserAccess: true
+
+  # -- Define roles that will be created in the cluster at startup
+  # roles:
+  #   - name: a4-bitcoin-testnet
+  #     ensure: present
+  #     superuser: false
+  #     login: true
+  #     createdb: true
+  #     passwordSecret:
+  #       name: a4-bitcoin-testnet-cnpg
+  roles: []
+
+  # -- Bootstrap configuration for new cluster
+  # bootstrap:
+  #   initdb:
+  #     database: app
+  #     owner: app
+  #     dataChecksums: true
+  #     encoding: 'LATIN1'
+  #     postInitSQL:
+  #           - CREATE DATABASE angus
+  bootstrap:
+    initdb: {}
+  
+  resources: 
+    limits:
+      cpu: '2'
+      memory: 4Gi
+    requests:
+      cpu: 100m
+      memory: 512Mi
+  
+  # -- Enable monitoring
+  monitoring:
+    enabled: false
+  
+  # -- Enable backup to object store for this cluster
+  # backups:
+  #   enabled: true
+  #   plugins:
+  #     - name: barman-cloud.cloudnative-pg.io
+  #       isWALArchiver: true
+  #       parameters:
+  #         barmanObjectName: s3-storage
+  backups:
+    enabled: false
+  
+  # -- Recovery/bootstrap cluster from external backup
+  # -- https://cloudnative-pg.io/documentation/1.26/recovery
+  # recovery:
+  #   enabled: false
+  #   config:
+  #     source: origin
+  #     volumeSnapshots:
+  #       storage:
+  #         name: <snapshot name>
+  #       kind: VolumeSnapshot
+  #       apiGroup: snapshot.storage.k8s.io
+  recovery:
+    enabled: false
+
+  # -- Connect to an external cluster for recovery
+  # externalClusters:
+  #   enabled: true
+  #   config:
+  #     - name: origin
+  #       plugin:
+  #         name: barman-cloud.cloudnative-pg.io
+  #         parameters:
+  #           barmanObjectName: cluster-example-backup
+  #           serverName: cluster-example
+  externalClusters:
+    enabled: false
+
+# -- Create db on cloudnative-pg
+database:
+  autoGeneratePassword: false
+  # -- Create db on cloudnative-pg
+  # list:
+  #   - name: database1
+  #     owner: database1-owner
+  #     secretName: database1-secret
+  #     # Recovery job use pgcopydb to restore database. Make sure the image below has pgcopydb installed
+  #     recovery:
+  #       enabled: false
+  #       imageName: ghcr.io/cloudnative-pg/postgresql:16.2-16
+  #       dbSourceHost: <db-source-host>
+  #       dbSourceSecretName: <db-source-secret-name>
+  #     extensions:
+  #       - name: extenstion_name
+  #         ensure: present
+  list: []
+
+# -- Object Store configuration
+# objectStore:
+#   enabled: true
+#   name: s3-storage
+#   spec:
+#     configuration: 
+#       destinationPath: s3://backup
+#       endpointURL: http://s3.minio.svc.cluster.local:9000
+#       s3Credentials:
+#       # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
+#         accessKeyId:
+#           name: s3-minio-secret
+#           key: MINIO_ROOT_USER
+#         secretAccessKey:
+#           name: s3-minio-secret
+#           key: MINIO_ROOT_PASSWORD
+#       wal:
+#         compression: gzip
+#     retentionPolicy: 30d
+objectStore:
+  enabled: false
