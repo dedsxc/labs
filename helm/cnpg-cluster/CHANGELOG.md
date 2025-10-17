@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.0...cnpg-cluster-1.2.1) (2025-10-17)
+
+
+### Bug Fixes
+
+* **cnpg:** values templating ([#66](https://github.com/dedsxc/labs/issues/66)) ([67ac65f](https://github.com/dedsxc/labs/commit/67ac65f257ed491b97dfcb3f2f6ea151a6beb187))
+
 ## [1.2.0](https://github.com/dedsxc/helm-charts/compare/cnpg-cluster-1.1.0...cnpg-cluster-1.2.0) (2025-10-14)
 
 
