@@ -1,0 +1,12 @@
+apiVersion: v2
+name: umbrella-app
+description: A Helm chart for Kubernetes
+type: application
+version: 0.0.0
+appVersion: 0.0.0
+
+dependencies:
+  - name: umbrella
+    repository: "oci://ghcr.io/dedsxc"
+    version: 0.0.0
+
