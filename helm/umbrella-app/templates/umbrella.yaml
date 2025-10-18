@@ -1,0 +1,14 @@
+---
+{{- include "umbrella.loader.init" . }}
+
+{{- define "app.values" -}}
+# Set the nameOverride based on the release name if no override has been set
+{{ if not .Values.global.nameOverride }}
+global:
+  nameOverride: "{{ .Release.Name }}"
+{{ end }}
+{{- end -}}
+{{- $_ := mergeOverwrite .Values (include "app.values" . | fromYaml) -}}
+
+{{/* Render the templates */}}
+{{ include "umbrella.loader.generate" . }}

@@ -1,0 +1,6 @@
+---
+apiVersion: v2
+name: umbrella
+description: Umbrella helm chart
+type: library
+version: 0.0.0
