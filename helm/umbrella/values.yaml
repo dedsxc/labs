@@ -1,0 +1,790 @@
+---
+global:
+  # -- Set an override for the prefix of the fullname
+  nameOverride:
+  # -- Set the entire name definition
+  fullnameOverride:
+  # -- Set additional global labels. Helm templates can be used.
+  labels: {}
+  # -- Set additional global annotations. Helm templates can be used.
+  annotations: {}
+
+controller:
+  # -- enable the controller.
+  enabled: true
+  # -- Set the controller type.
+  # Valid options are deployment, daemonset, statefulset, cronjob or argorollout (with argo-rollouts)
+  type: deployment
+  # -- Set annotations on the deployment/statefulset/daemonset/cronjob
+  annotations: {}
+  # -- Set labels on the deployment/statefulset/daemonset/cronjob
+  labels: {}
+  # -- Number of desired pods
+  replicas: 1
+  # -- Set the controller upgrade strategy
+  # For Deployments, valid values are RollingUpdate (default) and Recreate.
+  # For StatefulSets, valid values are OnDelete and RollingUpdate (default).
+  # DaemonSets/CronJobs ignore this.
+  strategy:
+  rollingUpdate:
+    # -- Set deployment RollingUpdate max unavailable
+    unavailable:
+    # -- Set deployment RollingUpdate max surge
+    surge:
+    # -- Set statefulset RollingUpdate partition
+    partition:
+  # -- ReplicaSet revision history limit
+  revisionHistoryLimit: 3
+  # -- Set statefulset podManagementPolicy, valid values are Parallel and OrderedReady (default).
+  podManagementPolicy:
+  # -- Set Container restart policy.
+  # @default -- `Always`. When `controller.type` is `cronjob` it defaults to `Never`.
+  restartPolicy:
+  # -- CronJob configuration. Required only when using `controller.type: cronjob`.
+  # @default -- See below
+  cronjob:
+    # -- Specifies how to treat concurrent executions of a job that is created by this cron job
+    # valid values are Allow, Forbid or Replace
+    concurrencyPolicy: Forbid
+    # -- Sets the CronJob time when to execute your jobs
+    schedule: "*/20 * * * *"
+    # -- The deadline in seconds for starting the job if it misses its scheduled time for any reason
+    startingDeadlineSeconds: 30
+    # -- The number of succesful Jobs to keep
+    successfulJobsHistory: 1
+    # -- The number of failed Jobs to keep
+    failedJobsHistory: 1
+    # --  If this field is set, ttlSecondsAfterFinished after the Job finishes, it is eligible to
+    # be automatically deleted.
+    ttlSecondsAfterFinished:
+  ## -- Rollout configuration. Required only when using `controller.type: argorollout`.
+  ## @default -- See below
+  rollout:
+    # -- Set the rollout analysis configuration
+    # Example -- See below
+    # analysis:
+    #   # limits the number of successful analysis runs and experiments to be stored in a history
+    #    # Defaults to 5.
+    #   successfulRunHistoryLimit: 10
+    #   # limits the number of unsuccessful analysis runs and experiments to be stored in a history. 
+    #   # Stages for unsuccessful: "Error", "Failed", "Inconclusive"
+    #   # Defaults to 5.
+    #   unsuccessfulRunHistoryLimit: 10
+    analysis: {}
+
+    # -- Set the rollout workload configuration
+    # WorkloadRef holds a references to a workload that provides Pod template 
+    # (e.g. Deployment). If used, then do not use Rollout template property.
+    # Example -- See below
+    # workloadRef: 
+    #   apiVersion: apps/v1
+    #   kind: Deployment
+    #   name: rollout-ref-deployment
+    #   # Specifies if the workload (Deployment) is scaled down after migrating to Rollout.
+    #   # The possible options are:
+    #   # "never": the Deployment is not scaled down
+    #   # "onsuccess": the Deployment is scaled down after the Rollout becomes healthy
+    #   # "progressively": as the Rollout is scaled up the Deployment is scaled down
+    #   # If the Rollout fails the Deployment will be scaled back up.
+    #   scaleDown: never|onsuccess|progressively
+    workloadRef: {}
+
+    # -- Set the rollout paused state
+    # Pause allows a user to manually pause a rollout at any time. A rollout
+    # will not advance through its steps while it is manually paused, but HPA
+    # auto-scaling will still occur. Typically not explicitly set the manifest,
+    # but controlled via tools (e.g. kubectl argo rollouts pause). If true at
+    # initial creation of Rollout, replicas are not scaled up automatically
+    # from zero unless manually promoted.
+    paused: false
+
+    # -- Set the progress deadline seconds
+    # The maximum time in seconds in which a rollout must make progress during
+    # an update, before it is considered to be failed. Argo Rollouts will
+    # continue to process failed rollouts and a condition with a
+    # ProgressDeadlineExceeded reason will be surfaced in the rollout status.
+    # Note that progress will not be estimated during the time a rollout is
+    # paused.
+    progressDeadlineSeconds: 600
+
+    # -- Set the progress deadline abort
+    # Whether to abort the update when ProgressDeadlineSeconds is exceeded.
+    progressDeadlineAbort: false
+
+    # -- Set the rollout strategy
+    # Valid options are "bluegreen" or "canary"
+    strategy: canary
+
+    # -- Set the configuration for the rollout strategy
+    # Full specification can be found at https://argoproj.github.io/argo-rollouts/features/specification/
+    ## -- Example for bluegreen strategy
+    # config: 
+    #   activeService: {{ .Release.Name }}
+    #   previewService: {{ .Release.Name }}-preview
+    #   prePromotionAnalysis:
+    #     templates:
+    #     - templateName: success-rate
+    #     args:
+    #     - name: service-name
+    #       value: guestbook-svc.default.svc.cluster.local
+    #   postPromotionAnalysis:
+    #     templates:
+    #     - templateName: success-rate
+    #     args:
+    #     - name: service-name
+    #       value: guestbook-svc.default.svc.cluster.local
+    #   previewReplicaCount: 1
+    #   autoPromotionEnabled: false
+    #   autoPromotionSeconds: 30
+    #   scaleDownDelaySeconds: 30
+    #   scaleDownDelayRevisionLimit: 2
+    #   abortScaleDownDelaySeconds: 30
+    #   antiAffinity:
+    #     requiredDuringSchedulingIgnoredDuringExecution: {}
+    #     preferredDuringSchedulingIgnoredDuringExecution:
+    #       weight: 1 # Between 1 - 100
+    #   activeMetadata:
+    #     labels:
+    #       role: active
+    #   previewMetadata:
+    #     labels:
+    #       role: preview
+
+    ## -- Example for canary strategy
+    # config:
+    #   stableService: {{ .Release.Name }}
+    #   canaryService: {{ .Release.Name }}-rollout
+    #   trafficRouting:
+    #     nginx:
+    #       stableIngress: {{ .Release.Name }}
+    #   maxSurge: "25%"
+    #   maxUnavailable: 0
+    #   steps:
+    #   - setWeight: 20
+    #   - pause: {duration: 10}
+    #   - setWeight: 40
+    #   - pause: {}
+    #   - setWeight: 60
+    #   - pause: {duration: 10}
+    #   - setWeight: 80
+    #   - pause: {}
+    config: {}
+      
+      
+image:
+  # -- image repository
+  repository:
+  # -- override image tag
+  overrideTag:
+  # -- image tag
+  tag:
+  # -- image pull policy
+  pullPolicy:
+
+# -- Set image pull secrets
+imagePullSecrets: 
+  - name: private-registries
+
+# -- Override the command(s) for the default container
+command: []
+# -- Override the args for the default container
+args: []
+
+# -- Set annotations on the pod
+podAnnotations: {}
+
+# -- Set labels on the pod
+podLabels: {}
+
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: false
+
+  # -- Annotations to add to the service account
+  annotations: {}
+
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# -- Specifies whether a service account token should be automatically mounted.
+automountServiceAccountToken: false
+
+# -- Use this to populate secrets with the values you specify.
+# Be aware that these values are not encrypted by default, and could therefore visible
+# to anybody with access to the values.yaml file.
+# Additional Secrets can be added by adding a dictionary key similar to the 'secret' object.
+# @default -- See below
+secrets:
+  secret:
+    # -- Enables or disables the Secret
+    enabled: false
+    # -- Labels to add to the Secret
+    labels: {}
+    # -- Annotations to add to the Secret
+    annotations: {}
+    # -- Secret stringData content. Helm template enabled.
+    stringData:
+      {}
+      # foo: bar
+
+# -- Use this to populate External Secrets with the values you specify.
+# Be aware that these values are not encrypted by default, and could therefore visible
+# to anybody with access to the values.yaml file.
+externalSecret:
+  # -- The external secret object
+  secret:
+    # -- Enables or disables the Secret
+    enabled: false
+    # -- Labels to add to the Secret
+    labels: {}
+    # -- Annotations to add to the Secret
+    annotations: {}
+    # -- Where to fetch the secret data
+    secretStoreRef: {}
+    # -- Amount of time before the values reading again from the SecretStore provider
+    refreshInterval: 1h
+    # -- Describes the secret that shall be created
+    target: {}
+    # -- Defines the connection between Kubernetes Secret Keys and the Provider
+    data: {}
+    # -- Fetch all properties from the Provider key
+    dataFrom: {}
+
+# -- Use this to populate Infisical Secrets with the values you specify.
+infisicalSecret:
+  secret:
+    # -- Enables or disables the Secret
+    enabled: false
+    # -- Labels to add to the Secret
+    labels: {}
+    # -- Annotations to add to the Secret
+    annotations: {}
+    # -- Host URL of the Infisical API
+    # http://<backend-svc-name>.<namespace>.svc.cluster.local:4000/api
+    hostAPI: "https://infisical.kien.cc"
+    # -- time in seconds between each resync of the secret
+    resyncInterval: 10
+    # -- Authentication method for Infisical
+    # See https://infisical.com/docs/integrations/platforms/kubernetes/infisical-secret-crd#authentication
+    authentication: {}
+    # -- Creation policy for the Infisical Secret
+    # See https://infisical.com/docs/integrations/platforms/kubernetes/infisical-secret-crd#managedkubesecretreferences-creationpolicy
+    creationPolicy: ""
+
+
+# -- Configure configMaps for the chart here.
+# Additional configMaps can be added by adding a dictionary key similar to the 'config' object.
+# @default -- See below
+configMaps:
+  config:
+    # -- Enables or disables the configMap
+    enabled: false
+    # -- Labels to add to the configMap
+    labels: {}
+    # -- Annotations to add to the configMap
+    annotations: {}
+    # -- configMap data content. Helm template enabled.
+    data:
+      {}
+      # foo: bar
+
+# -- Main environment variables. Template enabled.
+# Syntax options:
+# A) TZ: UTC
+# B) PASSWD: '{{ .Release.Name }}'
+# C) PASSWD:
+#      configMapKeyRef:
+#        name: config-map-name
+#        key: key-name
+# D) PASSWD:
+#      valueFrom:
+#        secretKeyRef:
+#          name: secret-name
+#          key: key-name
+#      ...
+# E) - name: TZ
+#      value: UTC
+# F) - name: TZ
+#      value: '{{ .Release.Name }}'
+env:
+
+# -- Secrets and/or ConfigMaps that will be loaded as environment variables.
+# [[ref]](https://unofficial-kubernetes.readthedocs.io/en/latest/tasks/configure-pod-container/configmap/#use-case-consume-configmap-in-environment-variables)
+envFrom: []
+# - configMapRef:
+#     name: config-map-name
+# - secretRef:
+#     name: secret-name
+
+# -- Custom priority class for different treatment by the scheduler
+priorityClassName: # system-node-critical
+
+# -- Allow specifying a runtimeClassName other than the default one (ie: nvidia)
+runtimeClassName: # nvidia
+
+# -- Allows specifying a custom scheduler name
+schedulerName: # awkward-dangerous-scheduler
+
+# -- Allows specifying explicit hostname setting
+hostname:
+
+# -- When using hostNetwork make sure you set dnsPolicy to `ClusterFirstWithHostNet`
+hostNetwork: false
+
+# -- Defaults to "ClusterFirst" if hostNetwork is false
+# and "ClusterFirstWithHostNet" if hostNetwork is true.
+dnsPolicy: # ClusterFirst
+
+# -- Configuring the ndots option may resolve nslookup issues on some Kubernetes setups.
+dnsConfig: {}
+#   options:
+#     - name: ndots
+#       value: "1"
+
+# -- Enable/disable the generation of environment variables for services.
+# [[ref]](https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#accessing-the-service)
+enableServiceLinks: false
+
+# -- Configure the Security Context for the Pod
+podSecurityContext: {}
+
+# -- Configure the Security Context for the main container
+securityContext: {}
+
+# -- Configure the lifecycle for the main container
+lifecycle: {}
+
+# -- Specify any initContainers here as dictionary items.
+# Each initContainer should have its own key. The dictionary item key will determine the order.
+# Helm templates can be used.
+initContainers: {}
+
+# -- Specify any sidecar containers here as dictionary items.
+# Each sidecar container should have its own key. The dictionary item key will determine the order.
+# Helm templates can be used.
+sidecars: {}
+
+# -- Probe configuration
+# -- [[ref]](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
+# @default -- See below
+probes:
+  # -- Liveness probe configuration
+  # @default -- See below
+  liveness:
+    # -- Enable the liveness probe
+    enabled: false
+    # -- Set this to `true` if you wish to specify your own livenessProbe
+    custom: false
+    # -- sets the probe type when not using a custom probe
+    # @default -- "HTTP"
+    type: HTTP
+    # -- sets the HTTP path of the probe
+    path:
+    # -- The spec field contains the values for the default livenessProbe.
+    # If you selected `custom: true`, this field holds the definition of the livenessProbe.
+    # @default -- See below
+    spec:
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 1
+      failureThreshold: 3
+
+  # -- Redainess probe configuration
+  # @default -- See below
+  readiness:
+    # -- Enable the readiness probe
+    enabled: false
+    # -- Set this to `true` if you wish to specify your own readinessProbe
+    custom: false
+    # -- sets the probe type when not using a custom probe
+    # @default -- "HTTP"
+    type: HTTP
+    # -- sets the HTTP path of the probe
+    path:
+    # -- The spec field contains the values for the default readinessProbe.
+    # If you selected `custom: true`, this field holds the definition of the readinessProbe.
+    # @default -- See below
+    spec:
+      initialDelaySeconds: 0
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+  # -- Startup probe configuration
+  # @default -- See below
+  startup:
+    # -- Enable the startup probe
+    enabled: false
+    # -- Set this to `true` if you wish to specify your own startupProbe
+    custom: false
+    # -- sets the probe type when not using a custom probe
+    # @default -- "HTTP"
+    type: HTTP
+    # -- sets the HTTP path of the probe
+    path:
+    # -- The spec field contains the values for the default startupProbe.
+    # If you selected `custom: true`, this field holds the definition of the startupProbe.
+    # @default -- See below
+    spec:
+      initialDelaySeconds: 1
+      timeoutSeconds: 4
+      ## This means it has a maximum of 5*30=150 seconds to start up before it fails
+      periodSeconds: 5
+      failureThreshold: 30
+
+termination:
+  # -- Configure the path at which the file to which the main container's termination message will be written.
+  # -- [[ref](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#lifecycle-1)]
+  messagePath:
+
+  # -- Indicate how the main container's termination message should be populated.
+  # Valid options are `File` and `FallbackToLogsOnError`.
+  # -- [[ref](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#lifecycle-1)]
+  messagePolicy:
+
+  # -- Duration in seconds the pod needs to terminate gracefully
+  # -- [[ref](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#lifecycle)]
+  gracePeriodSeconds:
+
+# -- Configure the services for the chart here.
+# Additional services can be added by adding a dictionary key similar to the 'main' service.
+# @default -- See below
+
+service:
+  main:
+    # -- Enables or disables the service
+    enabled: false
+
+    # -- Make this the primary service (used in probes, notes, etc...).
+    # If there is more than 1 service, make sure that only 1 service is marked as primary.
+    primary: true
+
+    # -- Override the name suffix that is used for this service
+    nameOverride:
+
+    # -- Set the service type
+    type: ClusterIP
+
+    # -- Specify the externalTrafficPolicy for the service. Options: Cluster, Local
+    # -- [[ref](https://kubernetes.io/docs/tutorials/services/source-ip/)]
+    externalTrafficPolicy:
+
+    # -- Specify the ip policy. Options: SingleStack, PreferDualStack, RequireDualStack
+    ipFamilyPolicy:
+    # -- The ip families that should be used. Options: IPv4, IPv6
+    ipFamilies: []
+
+    # -- Provide additional annotations which may be required.
+    annotations: {}
+
+    # -- Provide additional labels which may be required.
+    labels: {}
+
+    # -- Configure the Service port information here.
+    # Additional ports can be added by adding a dictionary key similar to the 'http' service.
+    # @default -- See below
+    ports:
+      http:
+        # -- Enables or disables the port
+        enabled: true
+
+        # -- Make this the primary port (used in probes, notes, etc...)
+        # If there is more than 1 service, make sure that only 1 port is marked as primary.
+        primary: true
+
+        # -- The port number
+        port:
+
+        # -- Port protocol.
+        # Support values are `HTTP`, `HTTPS`, `TCP` and `UDP`.
+        # HTTPS and HTTPS spawn a TCP service and get used for internal URL and name generation
+        protocol: HTTP
+
+        # -- Specify a service targetPort if you wish to differ the service port from the application port.
+        # If `targetPort` is specified, this port number is used in the container definition instead of
+        # the `port` value. Therefore named ports are not supported for this field.
+        targetPort:
+
+        # -- Specify the nodePort value for the LoadBalancer and NodePort service types.
+        # [[ref]](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport)
+        nodePort:
+
+        # -- Allow adding additional match labels
+        extraSelectorLabels: {}
+
+# -- Configure the ServiceMonitors for the chart here.
+# Additional ServiceMonitors can be added by adding a dictionary key similar to the 'main' ServiceMonitors.
+# @default -- See below
+serviceMonitor:
+  main:
+    # -- Enables or disables the serviceMonitor.
+    enabled: false
+
+    # -- Override the name suffix that is used for this serviceMonitor.
+    nameOverride:
+
+    # -- Provide additional annotations which may be required.
+    annotations: {}
+
+    # -- Provide additional labels which may be required.
+    labels: {}
+
+    # -- Configures a custom selector for the serviceMonitor, this takes precedence over
+    # specifying a service name.
+    # Helm templates can be used.
+    selector: {}
+
+    # -- Configures the target Service for the serviceMonitor. Helm templates can be used.
+    serviceName: '{{ include "umbrella.lib.chart.names.fullname" $ }}'
+
+    # -- Configures the endpoints for the serviceMonitor.
+    # @default -- See values.yaml
+    endpoints:
+      - port: http
+        scheme: http
+        path: /metrics
+        interval: 1m
+        scrapeTimeout: 10s
+
+# -- Configure the ingresses for the chart here.
+# Additional ingresses can be added by adding a dictionary key similar to the 'main' ingress.
+# @default -- See below
+ingress:
+  main:
+    # -- Enables or disables the ingress
+    enabled: false
+
+    # -- Make this the primary ingress (used in probes, notes, etc...).
+    # If there is more than 1 ingress, make sure that only 1 ingress is marked as primary.
+    primary: true
+
+    # -- Override the name suffix that is used for this ingress.
+    nameOverride:
+
+    # -- Provide additional annotations which may be required.
+    annotations: {}
+
+    # -- Provide additional labels which may be required.
+    labels: {}
+
+    # -- Set the ingressClass that is used for this ingress.
+    ingressClassName: nginx
+
+    ## Configure the hosts for the ingress
+    hosts:
+      - # -- Host address. Helm template can be passed.
+        host: chart-example.local
+        ## Configure the paths for the host
+        paths:
+          - # -- Path.  Helm template can be passed.
+            path: /
+            pathType: Prefix
+            service:
+              # -- Overrides the service name reference for this path
+              name:
+              # -- Overrides the service port reference for this path
+              port:
+
+    # -- Configure TLS for the ingress. Both secretName and hosts can process a Helm template.
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+
+# -- Configure persistence for the chart here.
+# Additional items can be added by adding a dictionary key similar to the 'config' key.
+# @default -- See below
+
+persistence:
+  # -- Default persistence for configuration files.
+  # @default -- See below
+  config:
+    # -- Enables or disables the persistence item
+    enabled: false
+
+    # -- Sets the persistence type
+    # Valid options are pvc, emptyDir, hostPath, secret, configMap or custom
+    type: pvc
+
+    # -- Where to mount the volume in the main container.
+    # Defaults to `/<name_of_the_volume>`,
+    # setting to '-' creates the volume but disables the volumeMount.
+    mountPath: # /config
+    # -- Specify if the volume should be mounted read-only.
+    readOnly: false
+    # -- Override the name suffix that is used for this volume.
+    nameOverride:
+
+    # -- Storage Class for the config volume.
+    # If set to `-`, dynamic provisioning is disabled.
+    # If set to something else, the given storageClass is used.
+    # If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner.
+    storageClass: # "-"
+
+    # -- If you want to reuse an existing claim, the name of the existing PVC can be passed here.
+    existingClaim: # your-claim
+
+    # -- Used in conjunction with `existingClaim`. Specifies a sub-path inside the referenced volume instead of its root
+    subPath: # some-subpath
+
+    # -- AccessMode for the persistent volume.
+    # Make sure to select an access mode that is supported by your storage provider!
+    # [[ref]](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes)
+    accessMode: ReadWriteOnce
+
+    # -- The amount of storage that is requested for the persistent volume.
+    size: 1Gi
+
+    # -- Set to true to retain the PVC upon `helm uninstall`
+    retain: false
+
+    # Persistent Volume attached to a PVC
+    volume:
+      # -- Enables or disables the Persistent Volume item
+      enabled: false
+      # -- hostPath on the kubernetes node
+      hostPath:
+      type: Directory
+
+  # -- Create an emptyDir volume to share between all containers
+  # [[ref]]https://kubernetes.io/docs/concepts/storage/volumes/#emptydir)
+  # @default -- See below
+  shared:
+    enabled: false
+    type: emptyDir
+    mountPath: /shared
+
+    # -- Set the medium to "Memory" to mount a tmpfs (RAM-backed filesystem) instead
+    # of the storage medium that backs the node.
+    medium: # Memory
+
+    # -- If the `SizeMemoryBackedVolumes` feature gate is enabled, you can
+    # specify a size for memory backed volumes.
+    sizeLimit: # 1Gi
+
+# -- Used in conjunction with `controller.type: statefulset` to create individual disks for each instance.
+
+volumeClaimTemplates: []
+# - name: data
+#   labels: {}
+#   annotations: {}
+#   mountPath: /data
+#   accessMode: "ReadWriteOnce"
+#   size: 1Gi
+# - name: backup
+#   labels: {}
+#   annotations: {}
+#   mountPath: /backup
+#   subPath: theSubPath
+#   accessMode: "ReadWriteOnce"
+#   size: 2Gi
+#   storageClass: cheap-storage-class
+
+# -- Node selection constraint
+# [[ref]](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+nodeSelector: {}
+
+# -- Defines affinity constraint rules.
+# [[ref]](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity)
+affinity: {}
+
+# -- Defines topologySpreadConstraint rules.
+# [[ref]](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/)
+# @default -- See values.yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: "kubernetes.io/hostname"
+    whenUnsatisfiable: ScheduleAnyway
+
+# -- Specify taint tolerations
+# [[ref]](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+tolerations: []
+
+# -- Use hostAliases to add custom entries to /etc/hosts - mapping IP addresses to hostnames.
+# [[ref]](https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/)
+hostAliases: []
+# - ip: "192.168.1.100"
+#   hostnames:
+#   - "example.com"
+#   - "www.example.com"
+
+# -- Set the resource requests / limits for the main container.
+resources:
+  {}
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Configure a podDisruptionBudget
+# [[ref]](https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
+podDisruptionBudget:
+  # -- Enable creation of pod disruption budget
+  enabled: false
+  # -- You can specify only one of maxUnavailable and minAvailable in a single PodDisruptionBudget
+  # -- Define number of pods that must still be available after the eviction, even in the absence of the evicted pod. It can be either an absolute number or a percentage.
+  minAvailable:
+  # -- Define number of pods that can be unavailable after the eviction. It can be either an absolute number or a percentage.
+  maxUnavailable:
+
+horizontalPodAutoscaler:
+  # -- Specify if the HorizontalPodAutoscaler should be created.
+  create: false
+  # -- The name of the HorizontalPodAutoscaler
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  # -- Defines the minimum number of replicas.
+  minReplicas:
+  # -- Defines the maximum number of replicas.
+  maxReplicas:
+  # -- Defines horizontalPodAutoscaler metrics to infer the target number of replicas
+  # [[ref]](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics)
+  metrics: []
+  # Here is an example of auto scaling on CPU
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     target:
+  #       type: Utilization
+  #       averageUtilization: 50
+  # -- Defines horizontalPodAutoscaler behavior
+  # [[ref]](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior)
+  behavior:
+  # The default behavior is described below. Chang this if you want to tune the
+  # scale up/down rate.
+  # scaleDown:
+  #   stabilizationWindowSeconds: 300
+  #   policies:
+  #   - type: Percent
+  #     value: 100
+  #     periodSeconds: 15
+  # scaleUp:
+  #   stabilizationWindowSeconds: 0
+  #   policies:
+  #   - type: Percent
+  #     value: 100
+  #     periodSeconds: 15
+  #   - type: Pods
+  #     value: 4
+  #     periodSeconds: 15
+  #   selectPolicy: Max
+
+# -- Configure a CiliumNetworkPolicy
+
+ciliumNetworkPolicy:
+  main:
+    # -- If set to true, will deploy a cilium network policy
+    enabled: false
+    # -- Description of the Cilium Networkpolicy
+    description: ""
+    # -- Ingress rules
+    ingress: []
+    # -- Egress rules
+    egress: []

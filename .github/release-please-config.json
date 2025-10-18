@@ -7,6 +7,21 @@
     "helm/cnpg-cluster": {
       "component": "cnpg-cluster",
       "release-type": "helm"
+    },
+    "helm/umbrella": {
+      "release-type": "helm",
+      "package-name": "umbrella",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "helm/umbrella-app/Chart.yaml",
+          "jsonpath": "$.dependencies[0].version"
+        }
+      ]
+    },
+    "helm/umbrella-app": {
+      "release-type": "helm",
+      "package-name": "umbrella-app"
     }
   }
 }
