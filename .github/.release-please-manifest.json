@@ -1,5 +1,5 @@
 {
-  "helm/cnpg-cluster":"1.2.1",
-  "helm/umbrella":"2.5.1",
-  "helm/umbrella-app":"2.5.1"
+  "helm/cnpg-cluster": "1.2.1",
+  "helm/umbrella": "2.6.0",
+  "helm/umbrella-app": "2.5.1"
 }
