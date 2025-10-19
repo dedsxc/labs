@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/dedsxc/labs/compare/app-template-1.0.1...app-template-1.0.2) (2025-10-19)
+
+
+### Bug Fixes
+
+* update infisical secret name ([#100](https://github.com/dedsxc/labs/issues/100)) ([02ed70a](https://github.com/dedsxc/labs/commit/02ed70a965e04fbed34f693fe90919a4eab3ba7b))
+
 ## [1.0.1](https://github.com/dedsxc/labs/compare/app-template-1.0.0...app-template-1.0.1) (2025-10-19)
 
 
