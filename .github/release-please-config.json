@@ -20,7 +20,7 @@
       ]
     },
     "helm/fork/app-template": {
-      "component": "app-template",
+      "component": "common",
       "release-type": "helm"
     }
   }
