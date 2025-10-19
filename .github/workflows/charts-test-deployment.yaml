@@ -4,8 +4,7 @@ name: "Charts: Test deployment"
 on:
   pull_request:
     paths:
-      - 'argocd/**'
-      - 'helm/**'
+      - 'examples/helm/**'
 
 jobs:
   get-modified-charts:
@@ -20,7 +19,7 @@ jobs:
       id: get_modified_charts
       run: |
         git fetch origin ${{ github.base_ref }}
-        charts=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | egrep '^(argocd|helm)' | xargs -r -L1 dirname | uniq)
+        charts=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | egrep '^(examples/helm)' | xargs -r -L1 dirname | uniq)
         filtered_paths=$(echo "$charts" | while read -r p; do echo "$p" | sed 's#/templates##'; done | uniq)
         echo "$filtered_paths"
         echo "modified_charts=$(echo "$filtered_paths" | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
