@@ -23,7 +23,7 @@ within the common library.
 apiVersion: secrets.infisical.com/v1alpha1
 kind: InfisicalSecret
 metadata:
-  name: {{ $infisicalSecretObject.name }}
+  name: name: {{ printf "%s-%s" $infisicalSecretObject.name $infisicalSecretObject.identifier }}
   {{- with $labels }}
   labels:
     {{- range $key, $value := . }}
