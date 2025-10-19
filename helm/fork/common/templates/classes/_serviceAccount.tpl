@@ -18,7 +18,7 @@ using the common library.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ $serviceAccountObject.name }}
+  name: {{ $serviceAccountObject.identifier }}
   {{- with $labels }}
   labels:
     {{- range $key, $value := . }}

@@ -16,6 +16,11 @@
           "type": "yaml",
           "path": "/helm/fork/app-template/Chart.yaml",
           "jsonpath": "$.dependencies[0].version"
+        },
+        {
+          "type": "yaml",
+          "path": "/helm/fork/app-template/Chart.yaml",
+          "jsonpath": "$.version"
         }
       ]
     },
