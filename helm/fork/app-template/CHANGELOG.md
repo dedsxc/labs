@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/dedsxc/labs/compare/app-template-1.0.2...app-template-1.0.3) (2025-10-19)
+
+
+### Bug Fixes
+
+* add default topologySpreadConstraint rules ([#102](https://github.com/dedsxc/labs/issues/102)) ([1eb0be3](https://github.com/dedsxc/labs/commit/1eb0be301de6a1b59c85fac4c1f1503dbeb00013))
+
 ## [1.0.2](https://github.com/dedsxc/labs/compare/app-template-1.0.1...app-template-1.0.2) (2025-10-19)
 
 
