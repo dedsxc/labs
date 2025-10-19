@@ -6,3 +6,6 @@ github-actions:
 docker:
   - changed-files:
       - any-glob-to-any-file: "containers/**"
+helm:
+  - changed-files:
+      - any-glob-to-any-file: "helm/**"
