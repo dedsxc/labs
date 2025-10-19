@@ -3,9 +3,13 @@
   {{- $controllerObject := .controllerObject -}}
   {{- $ctx := dict "rootContext" $rootContext "controllerObject" $controllerObject -}}
 
-enableServiceLinks: {{ $rootContext.Values.enableServiceLinks }}
+  {{- with $rootContext.Values.enableServiceLinks }}
+enableServiceLinks: {{ . | trim }}
+  {{- end -}}
 serviceAccountName: {{ include "common.lib.pod.field.serviceAccountName" (dict "ctx" $ctx) | trim }}
-automountServiceAccountToken: {{ $rootContext.Values.automountServiceAccountToken }}
+  {{- with $rootContext.Values.automountServiceAccountToken }}
+automountServiceAccountToken: {{ . | trim }}
+  {{- end -}}
   {{- with $rootContext.Values.priorityClassName }}
 priorityClassName: {{ . | trim }}
   {{- end -}}
@@ -21,8 +25,12 @@ securityContext: {{ toYaml . | nindent 2 }}
   {{- with $rootContext.Values.hostname }}
 hostname: {{ . | trim }}
   {{- end -}}
-hostNetwork: {{ $rootContext.Values.hostNetwork | default "false" }}
-dnsPolicy: {{ include "common.lib.pod.field.dnsPolicy" (dict "ctx" $ctx) | trim }}
+  {{- with $rootContext.Values.hostNetwork }}
+hostNetwork: {{ . | trim }}
+  {{- end -}}
+  {{- with include "common.lib.pod.field.dnsPolicy" (dict "ctx" $ctx) }}
+dnsPolicy: {{ . | trim }}
+  {{- end -}}
   {{- with $rootContext.Values.dnsConfig }}
 dnsConfig: {{ toYaml . | nindent 2 }}
   {{- end -}}

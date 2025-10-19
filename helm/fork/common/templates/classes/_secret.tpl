@@ -5,16 +5,6 @@ within the common library.
 {{- define "common.class.secret" -}}
   {{- $rootContext := .rootContext -}}
   {{- $secretObject := .object -}}
-
-  {{- $labels := merge
-    ($secretObject.labels | default dict)
-    (include "common.lib.metadata.allLabels" $rootContext | fromYaml)
-  -}}
-  {{- $annotations := merge
-    ($secretObject.annotations | default dict)
-    (include "common.lib.metadata.globalAnnotations" $rootContext | fromYaml)
-  -}}
-
   {{- $stringData := "" -}}
   {{- with $secretObject.stringData -}}
     {{- $stringData = (toYaml $secretObject.stringData) | trim -}}
@@ -27,20 +17,14 @@ type: {{ . }}
 {{- end }}
 metadata:
   name: {{ $secretObject.name }}
-  {{- with $labels }}
-  labels:
-    {{- range $key, $value := . }}
-      {{- printf "%s: %s" $key (tpl $value $rootContext | toYaml ) | nindent 4 }}
-    {{- end }}
+  {{- with include "common.lib.controller.metadata.labels" $rootContext }}
+  labels: {{- . | nindent 4 }}
   {{- end }}
-  {{- with $annotations }}
-  annotations:
-    {{- range $key, $value := . }}
-      {{- printf "%s: %s" $key (tpl $value $rootContext | toYaml ) | nindent 4 }}
-    {{- end }}
+  {{- with include "common.lib.controller.metadata.annotations" $rootContext }}
+  annotations: {{- . | nindent 4 }}
   {{- end }}
   namespace: {{ $rootContext.Release.Namespace }}
 {{- with $stringData }}
-stringData: {{- tpl $stringData $rootContext | nindent 2 }}
+stringData: {{- . | nindent 2 }}
 {{- end }}
 {{- end -}}

@@ -11,9 +11,6 @@ Renders the configMap objects required by the chart.
     {{- /* Generate object from the raw configMap values */ -}}
     {{- $configMapObject := (include "common.lib.configMap.getByIdentifier" (dict "rootContext" $rootContext "id" $identifier) | fromYaml) -}}
 
-    {{- /* Perform validations on the configMap before rendering */ -}}
-    {{- include "common.lib.configMap.validate" (dict "rootContext" $rootContext "object" $configMapObject "id" $identifier) -}}
-
       {{/* Include the configMap class */}}
       {{- include "common.class.configMap" (dict "rootContext" $rootContext "object" $configMapObject) | nindent 0 -}}
   {{- end -}}

@@ -1,9 +1,11 @@
 {{- define "common.lib.controller.metadata.labels" -}}
+  {{- $root := $ -}}
+  {{- $controller := (get $root.Values "controller" | default dict) -}}
   {{-
     $labels := (
       merge
-        (.Values.controller.labels | default dict)
-        (include "common.lib.metadata.allLabels" $ | fromYaml)
+        ($controller.labels | default dict)
+        (include "common.lib.metadata.allLabels" $root | fromYaml)
     )
   -}}
   {{- with $labels -}}
@@ -12,11 +14,13 @@
 {{- end -}}
 
 {{- define "common.lib.controller.metadata.annotations" -}}
+  {{- $root := $ -}}
+  {{- $controller := (get $root.Values "controller" | default dict) -}}
   {{-
     $annotations := (
       merge
-        (.Values.controller.annotations | default dict)
-        (include "common.lib.metadata.globalAnnotations" $ | fromYaml)
+        ($controller.annotations | default dict)
+        (include "common.lib.metadata.globalAnnotations" $root | fromYaml)
     )
   -}}
   {{- with $annotations -}}

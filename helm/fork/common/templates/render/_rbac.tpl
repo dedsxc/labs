@@ -17,9 +17,6 @@ Renders RBAC Role objects required by the chart.
     {{- /* Generate object from the raw role values */ -}}
     {{- $roleObject := (include "common.lib.rbac.role.getByIdentifier" (dict "rootContext" $rootContext "id" $identifier) | fromYaml) -}}
 
-    {{- /* Perform validations on the role before rendering */ -}}
-    {{- include "common.lib.rbac.role.validate" (dict "rootContext" $rootContext "object" $roleObject) -}}
-
     {{/* Include the role class */}}
     {{- include "common.class.rbac.Role" (dict "rootContext" $rootContext "object" $roleObject) | nindent 0 -}}
   {{- end -}}
