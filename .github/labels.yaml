@@ -7,10 +7,12 @@
 
 # Categories
 - name: github-actions
-  color: "7bd3ea"
+  color: "5319e7"
 - name: docker
-  color: "7bd3ea"
+  color: "5319e7"
+- name: helm
+  color: "5319e7"
 
 # release-please
 - name: "autorelease: pending"
-  color: "5319e7"
+  color: "7bd3ea"
