@@ -7,6 +7,21 @@
     "helm/cnpg-cluster": {
       "component": "cnpg-cluster",
       "release-type": "helm"
+    },
+    "helm/fork/common": {
+      "component": "common",
+      "release-type": "helm",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "/helm/fork/app-template/Chart.yaml",
+          "jsonpath": "$.dependencies[0].version"
+        }
+      ]
+    },
+    "helm/fork/app-template": {
+      "component": "app-template",
+      "release-type": "helm"
     }
   }
 }
