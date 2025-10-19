@@ -3,45 +3,22 @@ This template serves as a blueprint for Deployment objects that are created
 using the common library.
 */}}
 {{- define "common.class.deployment" -}}
-  {{- $rootContext := .rootContext -}}
-  {{- $deploymentObject := .object -}}
-
-  {{- $labels := merge
-    (dict "app.kubernetes.io/controller" $deploymentObject.identifier)
-    ($deploymentObject.labels | default dict)
-    (include "common.lib.metadata.allLabels" $rootContext | fromYaml)
-  -}}
-  {{- $annotations := merge
-    ($deploymentObject.annotations | default dict)
-    (include "common.lib.metadata.globalAnnotations" $rootContext | fromYaml)
-  -}}
+  {{- $rootContext := . -}}
+  {{- $deploymentObject := .Values.controller -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $deploymentObject.name }}
-  {{- with $labels }}
-  labels:
-    {{- range $key, $value := . }}
-      {{- printf "%s: %s" $key (tpl $value $rootContext | toYaml ) | nindent 4 }}
-    {{- end }}
+  name: {{ include "common.lib.chart.names.fullname" . }}
+  {{- with include "common.lib.controller.metadata.labels" . }}
+  labels: {{- . | nindent 4 }}
   {{- end }}
-  {{- with $annotations }}
-  annotations:
-    {{- range $key, $value := . }}
-      {{- printf "%s: %s" $key (tpl $value $rootContext | toYaml ) | nindent 4 }}
-    {{- end }}
+  {{- with include "common.lib.controller.metadata.annotations" . }}
+  annotations: {{- . | nindent 4 }}
   {{- end }}
-  namespace: {{ $rootContext.Release.Namespace }}
 spec:
-  revisionHistoryLimit: {{ include "common.lib.defaultKeepNonNullValue" (dict "value" $deploymentObject.revisionHistoryLimit "default" 3) }}
-  {{- if hasKey $deploymentObject "replicas" }}
-    {{- if not (eq $deploymentObject.replicas nil) }}
+  revisionHistoryLimit: {{ $deploymentObject.revisionHistoryLimit }}
   replicas: {{ $deploymentObject.replicas }}
-    {{- end }}
-  {{- else }}
-  replicas: 1
-  {{- end }}
   strategy:
     type: {{ $deploymentObject.strategy }}
     {{- with $deploymentObject.rollingUpdate }}
@@ -57,14 +34,13 @@ spec:
     {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/controller: {{ $deploymentObject.identifier }}
       {{- include "common.lib.metadata.selectorLabels" $rootContext | nindent 6 }}
   template:
     metadata:
-      {{- with (include "common.lib.pod.metadata.annotations" (dict "rootContext" $rootContext "controllerObject" $deploymentObject)) }}
+      {{- with (include "common.lib.pod.metadata.annotations" (dict "rootContext" $rootContext "controllerObject" $deploymentObject.annotations)) }}
       annotations: {{ . | nindent 8 }}
       {{- end -}}
-      {{- with (include "common.lib.pod.metadata.labels" (dict "rootContext" $rootContext "controllerObject" $deploymentObject)) }}
+      {{- with (include "common.lib.pod.metadata.labels" (dict "rootContext" $rootContext "controllerObject" $deploymentObject.labels)) }}
       labels: {{ . | nindent 8 }}
       {{- end }}
     spec: {{ include "common.lib.pod.spec" (dict "rootContext" $rootContext "controllerObject" $deploymentObject) | nindent 6 }}

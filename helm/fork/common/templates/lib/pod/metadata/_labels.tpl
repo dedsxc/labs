@@ -29,7 +29,7 @@ Returns the value for labels
 
   {{- /* Fetch the configured labels */ -}}
   {{- $ctx := dict "rootContext" $rootContext "controllerObject" $controllerObject -}}
-  {{- $podlabels := (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "labels")) | fromYaml -}}
+  {{- $podlabels := $rootContext.Values.podLabels -}}
   {{- if not (empty $podlabels) -}}
     {{- $labels = merge
       $podlabels

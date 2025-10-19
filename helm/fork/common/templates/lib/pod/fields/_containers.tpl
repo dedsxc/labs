@@ -2,8 +2,8 @@
 Returns the value for containers
 */ -}}
 {{- define "common.lib.pod.field.containers" -}}
-  {{- $rootContext := .ctx.rootContext -}}
-  {{- $controllerObject := .ctx.controllerObject -}}
+  {{- $rootContext := .ctx -}}
+  {{- $controllerObject := .ctx -}}
 
   {{- /* Default to empty list */ -}}
   {{- $graph := dict -}}

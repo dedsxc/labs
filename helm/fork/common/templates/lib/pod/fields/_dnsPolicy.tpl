@@ -9,16 +9,9 @@ Returns the value for dnsPolicy
   {{- $dnsPolicy := "ClusterFirst" -}}
 
   {{- /* Get hostNetwork value "" */ -}}
-  {{- $hostNetwork:= include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostNetwork") -}}
+  {{- $hostNetwork:= $ctx.hostNetwork -}}
   {{- if (eq $hostNetwork "true") -}}
     {{- $dnsPolicy = "ClusterFirstWithHostNet" -}}
-  {{- end -}}
-
-  {{- /* See if an override is desired */ -}}
-  {{- $override := include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "dnsPolicy") -}}
-
-  {{- if not (empty $override) -}}
-    {{- $dnsPolicy = $override -}}
   {{- end -}}
 
   {{- $dnsPolicy -}}

@@ -1,86 +1,73 @@
-{{- /*
-The pod definition included in the controller.
-*/ -}}
 {{- define "common.lib.pod.spec" -}}
   {{- $rootContext := .rootContext -}}
   {{- $controllerObject := .controllerObject -}}
   {{- $ctx := dict "rootContext" $rootContext "controllerObject" $controllerObject -}}
 
-enableServiceLinks: {{ include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "enableServiceLinks" "default" false) }}
+enableServiceLinks: {{ $rootContext.Values.enableServiceLinks }}
 serviceAccountName: {{ include "common.lib.pod.field.serviceAccountName" (dict "ctx" $ctx) | trim }}
-automountServiceAccountToken: {{ include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "automountServiceAccountToken" "default" true) }}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "priorityClassName")) }}
+automountServiceAccountToken: {{ $rootContext.Values.automountServiceAccountToken }}
+  {{- with $rootContext.Values.priorityClassName }}
 priorityClassName: {{ . | trim }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "runtimeClassName")) }}
+  {{- with $rootContext.Values.runtimeClassName }}
 runtimeClassName: {{ . | trim }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "schedulerName")) }}
+  {{- with $rootContext.Values.schedulerName }}
 schedulerName: {{ . | trim }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "securityContext")) }}
-securityContext: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.securityContext }}
+securityContext: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostname")) }}
+  {{- with $rootContext.Values.hostname }}
 hostname: {{ . | trim }}
-  {{- end }}
-hostIPC: {{ include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostIPC" "default" false) }}
-hostNetwork: {{ include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostNetwork" "default" false) }}
-hostPID: {{ include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostPID" "default" false) }}
-  {{- if ge ($rootContext.Capabilities.KubeVersion.Minor | int) 29 }}
-    {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostUsers")) }}
-hostUsers: {{ . | trim }}
-    {{- end -}}
-    {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "shareProcessNamespace")) }}
-shareProcessNamespace: {{ . | trim }}
-    {{- end -}}
-  {{- end }}
+  {{- end -}}
+hostNetwork: {{ $rootContext.Values.hostNetwork | default "false" }}
 dnsPolicy: {{ include "common.lib.pod.field.dnsPolicy" (dict "ctx" $ctx) | trim }}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "dnsConfig")) }}
-dnsConfig: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.dnsConfig }}
+dnsConfig: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "hostAliases")) }}
-hostAliases: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.hostAliases }}
+hostAliases: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "imagePullSecrets")) }}
-imagePullSecrets: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.imagePullSecrets }}
+imagePullSecrets: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "terminationGracePeriodSeconds")) }}
+  {{- with $rootContext.Values.terminationGracePeriodSeconds }}
 terminationGracePeriodSeconds: {{ . | trim }}
   {{- end -}}
   {{- if ge ($rootContext.Capabilities.KubeVersion.Minor | int) 32 }}
-    {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "resources")) }}
-resources: {{ . | nindent 2 }}
+    {{- with $rootContext.Values.resources }}
+resources: {{ toYaml . | nindent 2 }}
     {{- end -}}
-    {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "resourceClaims")) }}
-resourceClaims: {{ . | nindent 2 }}
+    {{- with $rootContext.Values.resourceClaims }}
+resourceClaims: {{ toYaml . | nindent 2 }}
     {{- end -}}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "restartPolicy")) }}
+  {{- with $rootContext.Values.restartPolicy }}
 restartPolicy: {{ . | trim }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "nodeSelector")) }}
-nodeSelector: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.nodeSelector }}
+nodeSelector: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "affinity")) }}
-affinity: {{- tpl . $rootContext | nindent 2 }}
+  {{- with $rootContext.Values.affinity }}
+affinity: {{ tpl (toYaml .) $rootContext | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "topologySpreadConstraints")) }}
-topologySpreadConstraints: {{- tpl . $rootContext | nindent 2 }}
+  {{- with $rootContext.Values.topologySpreadConstraints }}
+topologySpreadConstraints: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "tolerations")) }}
-tolerations: {{ . | nindent 2 }}
-  {{- end }}
-  {{- with (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "schedulingGates")) }}
-schedulingGates: {{ . | nindent 2 }}
-  {{- end }}
-  {{- with (include "common.lib.pod.field.initContainers" (dict "ctx" $ctx) | trim) }}
-initContainers: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.tolerations }}
+tolerations: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.field.containers" (dict "ctx" $ctx) | trim) }}
-containers: {{ . | nindent 2 }}
+  {{- with $rootContext.Values.schedulingGates }}
+schedulingGates: {{ toYaml . | nindent 2 }}
   {{- end -}}
-  {{- with (include "common.lib.pod.field.volumes" (dict "ctx" $ctx) | trim) }}
-volumes: {{ . | nindent 2 }}
+  {{- with (include "common.lib.pod.field.initContainers" (dict "ctx" $ctx) | fromYaml) }}
+initContainers: {{ toYaml . | nindent 2 }}
+  {{- end -}}
+  {{- with (include "common.lib.pod.field.containers" (dict "ctx" $ctx) | fromYaml) }}
+containers: {{ toYaml . | nindent 2 }}
+  {{- end -}}
+  {{- with (include "common.lib.pod.field.volumes" (dict "ctx" $ctx) | fromYaml) }}
+volumes: {{ toYaml . | nindent 2 }}
   {{- end -}}
 {{- end -}}

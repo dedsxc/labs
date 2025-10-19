@@ -6,16 +6,13 @@ Secondary entrypoint and primary loader for the common chart
   {{- $mergedValues := tpl (deepCopy .Values | toYaml) . | fromYaml -}}
   {{- $_ := set . "Values" $mergedValues -}}
 
-  {{- /* Run global chart validations */ -}}
-  {{- include "common.lib.chart.validate" $rootContext -}}
-
   {{- /* Build the templates */ -}}
   {{- include "common.render.pvcs" $rootContext | nindent 0 -}}
   {{- include "common.render.serviceAccount" $rootContext | nindent 0 -}}
   {{- include "common.render.configMaps.fromFolder" $rootContext | nindent 0 -}}
   {{- include "common.render.configMaps" $rootContext | nindent 0 -}}
   {{- include "common.render.secrets.fromFolder" $rootContext | nindent 0 -}}
-  {{- include "common.render.controllers" $rootContext | nindent 0 -}}
+  {{- include "common.render.controller" $rootContext | nindent 0 -}}
   {{- include "common.render.services" $rootContext | nindent 0 -}}
   {{- include "common.render.infisicalSecrets" $rootContext | nindent 0 -}}
   {{- include "common.render.ingresses" $rootContext | nindent 0 -}}

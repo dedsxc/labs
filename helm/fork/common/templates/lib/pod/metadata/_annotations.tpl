@@ -4,7 +4,6 @@ Returns the value for annotations
 {{- define "common.lib.pod.metadata.annotations" -}}
   {{- $rootContext := .rootContext -}}
   {{- $controllerObject := .controllerObject -}}
-
   {{- /* Default annotations */ -}}
   {{- $annotations := merge
     (dict)
@@ -20,7 +19,7 @@ Returns the value for annotations
 
   {{- /* Fetch the configured annotations */ -}}
   {{- $ctx := dict "rootContext" $rootContext "controllerObject" $controllerObject -}}
-  {{- $podAnnotations := (include "common.lib.pod.getOption" (dict "ctx" $ctx "option" "annotations")) | fromYaml -}}
+  {{- $podAnnotations := $rootContext.Values.podAnnotations -}}
   {{- if not (empty $podAnnotations) -}}
     {{- $annotations = merge
       $podAnnotations
