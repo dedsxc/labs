@@ -100,7 +100,10 @@ defaultPodOptions:
 
   # -- Defines topologySpreadConstraint rules.
   # [[ref]](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/)
-  topologySpreadConstraints: []
+  topologySpreadConstraints: 
+    - maxSkew: 1
+      topologyKey: "kubernetes.io/hostname"
+      whenUnsatisfiable: ScheduleAnyway
 
 controllers: 
   main:
