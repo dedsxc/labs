@@ -34,7 +34,7 @@ spec:
     {{- end }}
   selector:
     matchLabels:
-      {{- include "common.lib.metadata.selectorLabels" $rootContext | nindent 6 }}
+      {{- include "common.lib.metadata.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with (include "common.lib.pod.metadata.annotations" (dict "rootContext" $rootContext "controllerObject" $deploymentObject.annotations)) }}

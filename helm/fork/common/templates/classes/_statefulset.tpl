@@ -3,10 +3,8 @@ This template serves as the blueprint for the StatefulSet objects that are creat
 within the common library.
 */}}
 {{- define "common.class.statefulset" -}}
-  {{- $strategy := default "RollingUpdate" .Values.controller.strategy -}}
-  {{- if and (ne $strategy "OnDelete") (ne $strategy "RollingUpdate") -}}
-    {{- fail (printf "Not a valid strategy type for StatefulSet (%s)" $strategy) -}}
-  {{- end -}}
+  {{- $rootContext := . -}}
+  {{- $statefulsetObject := .Values.controller -}}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -18,51 +16,40 @@ metadata:
   {{- with include "common.lib.controller.metadata.annotations" . }}
   annotations: {{- . | nindent 4 }}
   {{- end }}
+  namespace: {{ $rootContext.Release.Namespace }}
 spec:
-  revisionHistoryLimit: {{ .Values.controller.revisionHistoryLimit }}
-  replicas: {{ .Values.controller.replicas }}
-  podManagementPolicy: {{ default "OrderedReady" .Values.controller.podManagementPolicy }}
+  revisionHistoryLimit: {{ include "common.lib.defaultKeepNonNullValue" (dict "value" $statefulsetObject.revisionHistoryLimit "default" 3) }}
+  replicas: {{ $statefulsetObject.replicas }}
+  podManagementPolicy: {{ dig "statefulset" "podManagementPolicy" "OrderedReady" $statefulsetObject }}
   updateStrategy:
-    type: {{ $strategy }}
-    {{- if and (eq $strategy "RollingUpdate") .Values.controller.rollingUpdate.partition }}
+    type: {{ $statefulsetObject.strategy }}
+    {{- if and (eq $statefulsetObject.strategy "RollingUpdate") (dig "rollingUpdate" "partition" nil $statefulsetObject) }}
     rollingUpdate:
-      partition: {{ .Values.controller.rollingUpdate.partition }}
+      partition: {{ $statefulsetObject.rollingUpdate.partition }}
     {{- end }}
+  {{- if and (ge ($rootContext.Capabilities.KubeVersion.Minor | int) 31) }}
+    {{- with (dig "statefulset" "startOrdinal" nil $statefulsetObject) }}
+  ordinals:
+    start: {{ . }}
+    {{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "common.lib.metadata.selectorLabels" . | nindent 6 }}
   serviceName: {{ include "common.lib.chart.names.fullname" . }}
+  {{- with (dig "statefulset" "persistentVolumeClaimRetentionPolicy" nil $statefulsetObject) }}
+  persistentVolumeClaimRetentionPolicy:  {{ . | toYaml | nindent 4 }}
+  {{- end }}
   template:
     metadata:
-      {{- with include ("common.lib.metadata.podAnnotations") . }}
-      annotations:
-        {{- . | nindent 8 }}
+      {{- with (include "common.lib.pod.metadata.annotations" (dict "rootContext" $rootContext "controllerObject" $statefulsetObject)) }}
+      annotations: {{ . | nindent 8 }}
+      {{- end -}}
+      {{- with (include "common.lib.pod.metadata.labels" (dict "rootContext" $rootContext "controllerObject" $statefulsetObject)) }}
+      labels: {{ . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "common.lib.metadata.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-    spec:
-      {{- include "common.lib.controller.pod" . | nindent 6 }}
-  volumeClaimTemplates:
-    {{- range $index, $volumeClaimTemplate := .Values.volumeClaimTemplates }}
-    - metadata:
-        name: {{ $volumeClaimTemplate.name }}
-        {{- with ($volumeClaimTemplate.labels | default dict) }}
-        labels: {{- toYaml . | nindent 10 }}
-        {{- end }}
-        {{- with ($volumeClaimTemplate.annotations | default dict) }}
-        annotations: {{- toYaml . | nindent 10 }}
-        {{- end }}
-      spec:
-        accessModes:
-          - {{ required (printf "accessMode is required for volumeClaimTemplate %v" $volumeClaimTemplate.name) $volumeClaimTemplate.accessMode  | quote }}
-        resources:
-          requests:
-            storage: {{ required (printf "size is required for PVC %v" $volumeClaimTemplate.name) $volumeClaimTemplate.size | quote }}
-        {{- if $volumeClaimTemplate.storageClass }}
-        storageClassName: {{ if (eq "-" $volumeClaimTemplate.storageClass) }}""{{- else }}{{ $volumeClaimTemplate.storageClass | quote }}{{- end }}
-        {{- end }}
-    {{- end }}
+    spec: {{ include "common.lib.pod.spec" (dict "rootContext" $rootContext "controllerObject" $statefulsetObject) | nindent 6 }}
+  {{- with (include "common.lib.statefulset.volumeclaimtemplates" (dict "rootContext" $rootContext "statefulsetObject" $statefulsetObject)) }}
+  volumeClaimTemplates: {{ . | nindent 4 }}
+  {{- end }}
 {{- end }}

@@ -2,24 +2,15 @@
   {{- $rootContext := .rootContext -}}
   {{- $controllerObject := .controllerObject -}}
   {{- $ctx := dict "rootContext" $rootContext "controllerObject" $controllerObject -}}
+  
 
-  {{- with $rootContext.Values.enableServiceLinks }}
-enableServiceLinks: {{ . | trim }}
-  {{- end -}}
+enableServiceLinks: {{ $rootContext.Values.enableServiceLinks}}
 serviceAccountName: {{ include "common.lib.pod.field.serviceAccountName" (dict "ctx" $ctx) | trim }}
-  {{- with $rootContext.Values.automountServiceAccountToken }}
-automountServiceAccountToken: {{ . | trim }}
-  {{- end -}}
-  {{- with $rootContext.Values.priorityClassName }}
-priorityClassName: {{ . | trim }}
-  {{- end -}}
-  {{- with $rootContext.Values.runtimeClassName }}
-runtimeClassName: {{ . | trim }}
-  {{- end -}}
-  {{- with $rootContext.Values.schedulerName }}
-schedulerName: {{ . | trim }}
-  {{- end -}}
-  {{- with $rootContext.Values.securityContext }}
+automountServiceAccountToken: {{ $rootContext.Values.automountServiceAccountToken }}
+priorityClassName: {{ $rootContext.Values.priorityClassName }}
+runtimeClassName: {{ $rootContext.Values.runtimeClassName  }}
+schedulerName: {{ $rootContext.Values.schedulerName }}
+  {{- with $rootContext.Values.podSecurityContext }}
 securityContext: {{ toYaml . | nindent 2 }}
   {{- end -}}
   {{- with $rootContext.Values.hostname }}
