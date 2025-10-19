@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/dedsxc/labs/compare/common-1.0.0...common-1.0.1) (2025-10-19)
+
+
+### Bug Fixes
+
+* disable automount sa token and update sa name ([#92](https://github.com/dedsxc/labs/issues/92)) ([4fcef99](https://github.com/dedsxc/labs/commit/4fcef990b3c202fcb1688700e047ba2bc234c8b4))
+
 ## 1.0.0 (2025-10-19)
 
 
