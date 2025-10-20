@@ -69,7 +69,37 @@ podDisruptionBudget:
   maxUnavailable: 1
   annotations:
     example.com/custom-annotation: "true"
-  
+
+externalSecret:
+  secret:
+    enabled: true
+    secretStoreRef:
+      name: vault-secret-store
+      kind: SecretStore
+    refreshInterval: 1h
+    target:
+      name: '{{ .Release.Name }}-secret'
+    data:
+      - secretKey: ADMIN_TOKEN
+        remoteRef:
+          key: secret/data/kubernetes/vaultwarden
+          property: data.ADMIN_TOKEN
+      - secretKey: POSTGRES_PASSWORD
+        remoteRef:
+          key: secret/data/database/credentials
+          property: data.password
+  aws:
+    enabled: true
+    secretStoreRef:
+      name: vault-secret-store
+      kind: SecretStore
+    refreshInterval: 1h
+    target:
+      name: '{{ .Release.Name }}-secret'
+    dataFrom:
+      - extract:
+          key: secret/data/kubernetes/{{ .Release.Name }}
+          property: data
 
 infisicalSecret:
   secret:
