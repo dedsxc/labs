@@ -14,11 +14,6 @@ within the common library.
     ($infisicalSecretObject.annotations | default dict)
     (include "common.lib.metadata.globalAnnotations" $rootContext | fromYaml)
   -}}
-
-  {{- $stringData := "" -}}
-  {{- with $infisicalSecretObject.stringData -}}
-    {{- $stringData = (toYaml $infisicalSecretObject.stringData) | trim -}}
-  {{- end -}}
 ---
 apiVersion: secrets.infisical.com/v1alpha1
 kind: InfisicalSecret
