@@ -1,0 +1,29 @@
+openebs:
+  localpv-provisioner:
+    localpv:
+      basePath: "/data"
+    hostpathClass:
+      reclaimPolicy: Retain
+
+  zfs-localpv:
+    enabled: false
+  lvm-localpv:
+    enabled: false
+  mayastor:
+    enabled: false
+  
+  engines:
+    local:
+      lvm:
+        enabled: false
+      zfs:
+        enabled: false
+    replicated:
+      mayastor:
+        enabled: false
+  
+  loki:
+    enabled: false
+  
+  alloy:
+    enabled: false

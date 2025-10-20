@@ -1,0 +1,9 @@
+secrets-store-csi-driver:
+  tokenRequests:
+    - audience: infisical
+
+  # Enable secret rotation
+  enableSecretRotation: true
+  rotationPoolInterval: "2m"
+  syncSecret:
+    enabled: true
