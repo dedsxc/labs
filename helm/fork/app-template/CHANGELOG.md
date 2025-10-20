@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/dedsxc/labs/compare/app-template-1.0.3...app-template-1.1.0) (2025-10-20)
+
+
+### Features
+
+* support of pdb ([#105](https://github.com/dedsxc/labs/issues/105)) ([8ea7d9c](https://github.com/dedsxc/labs/commit/8ea7d9c31470d9ba6b22c8ef97762afec7654793))
+
 ## [1.0.3](https://github.com/dedsxc/labs/compare/app-template-1.0.2...app-template-1.0.3) (2025-10-20)
 
 
