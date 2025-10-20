@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/dedsxc/labs/compare/common-1.2.0...common-1.2.1) (2025-10-20)
+
+
+### Bug Fixes
+
+* correct probes type generation ([#111](https://github.com/dedsxc/labs/issues/111)) ([c4d55cc](https://github.com/dedsxc/labs/commit/c4d55ccbe90df513f23d307f767f5555049f7608))
+
 ## [1.2.0](https://github.com/dedsxc/labs/compare/common-1.1.0...common-1.2.0) (2025-10-20)
 
 
