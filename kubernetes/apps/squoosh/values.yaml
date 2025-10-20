@@ -1,0 +1,43 @@
+---
+app-template:
+  port: 3000
+  host: "squoosh-test"
+
+  controllers:
+    main:
+      replicas: 2
+      containers:
+        main:
+          image:
+            repository: ghcr.io/dedsxc/squoosh
+            tag: dev@sha256:9f41f0b315e3c9f315fd474894ea6defebda87883f6608dcdd7d448a0af4c09b
+          resources:
+            limits:
+              cpu: 1
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 128Mi
+  service:
+    main:
+      enabled: true
+      type: ClusterIP
+      ports:
+        http:
+          enabled: true
+          port: "{{ .Values.port }}"
+          targetPort: "{{ .Values.port }}"
+  
+  ingress:
+    cloudflare:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - host: "{{ .Values.host }}.{{ .Values.domain }}"
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: "{{ .Values.host }}.{{ .Values.domain }}"
+          hosts:
+            - "{{ .Values.host }}.{{ .Values.domain }}"
