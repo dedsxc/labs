@@ -75,10 +75,19 @@ Probes used by the container.
           {{- if kindIs "float64" $probeValues.port -}}
             {{- $_ := set (index $probeDefinition $probeHeader) "port" $probeValues.port -}}
           {{- else if kindIs "string" $probeValues.port -}}
-            {{- $_ := set (index $probeDefinition $probeHeader) "port" (tpl ( $probeValues.port | toString ) $rootContext) -}}
+            {{- $portValue := (tpl ( $probeValues.port | toString ) $rootContext) -}}
+            {{- if regexMatch "^\\d+$" $portValue -}}
+              {{- $_ := set (index $probeDefinition $probeHeader) "port" ($portValue | atoi) -}}             
+            {{- else -}}
+              {{- $_ := set (index $probeDefinition $probeHeader) "port" $portValue -}}
+            {{- end -}}
           {{- end -}}
         {{- else if $primaryServiceDefaultPort.targetPort -}}
-          {{- $_ := set (index $probeDefinition $probeHeader) "port" $primaryServiceDefaultPort.targetPort -}}
+          {{- if regexMatch "^\\d+$" $primaryServiceDefaultPort.targetPort -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.targetPort | toString | atoi) -}}
+          {{- else -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" $primaryServiceDefaultPort.targetPort -}}
+          {{- end -}}
         {{- else if $primaryServiceDefaultPort.port -}}
           {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.port | toString | atoi ) -}}
         {{- end -}}
