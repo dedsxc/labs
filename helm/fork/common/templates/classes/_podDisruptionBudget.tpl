@@ -4,12 +4,20 @@ using the common library.
 */}}
 {{- define "common.class.podDisruptionBudget" -}}
   {{- $rootContext := .rootContext -}}
-  {{- $podDisruptionBudgetObject := .object -}}
+
+  {{- $labels := merge
+    ($rootContext.Values.podDisruptionBudget.labels | default dict)
+    (include "common.lib.metadata.allLabels" $rootContext | fromYaml)
+  -}}
+  {{- $annotations := merge
+    ($rootContext.Values.podDisruptionBudget.annotations | default dict)
+    (include "common.lib.metadata.globalAnnotations" $rootContext | fromYaml)
+  -}}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ printf "%s-%s" $podDisruptionBudgetObject.name $podDisruptionBudgetObject.identifier }}
+  name: {{ include "common.lib.chart.names.fullname" $rootContext }}
   {{- with $labels }}
   labels:
     {{- range $key, $value := . }}
@@ -23,12 +31,24 @@ metadata:
     {{- end }}
   {{- end }}
 spec:
-  {{- if .Values.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
-  {{- else if .Values.podDisruptionBudget.maxUnavailable }}
-  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- if $rootContext.Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ $rootContext.Values.podDisruptionBudget.minAvailable }}
+  {{- else if $rootContext.Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ $rootContext.Values.podDisruptionBudget.maxUnavailable }}
   {{- end }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "umbrella.lib.chart.names.fullname" . }}
+    {{- if $rootContext.Values.podDisruptionBudget.selector }}
+      {{- with $rootContext.Values.podDisruptionBudget.selector }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- else }}
+      {{- with (merge
+        (dict "app.kubernetes.io/controller" $rootContext.Values.podDisruptionBudget.controller)
+        (include "common.lib.metadata.selectorLabels" $rootContext | fromYaml)
+        (dict "app.kubernetes.io/name" (include "common.lib.chart.names.fullname" $rootContext))
+      ) }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}
 {{- end -}}
