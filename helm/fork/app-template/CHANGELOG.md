@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/dedsxc/labs/compare/app-template-1.1.0...app-template-1.2.0) (2025-10-20)
+
+
+### Features
+
+* add eso support ([#109](https://github.com/dedsxc/labs/issues/109)) ([555a7cc](https://github.com/dedsxc/labs/commit/555a7cc02178446f5fd31afc7e22fd7de33f6ad9))
+
 ## [1.1.0](https://github.com/dedsxc/labs/compare/app-template-1.0.3...app-template-1.1.0) (2025-10-20)
 
 
