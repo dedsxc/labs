@@ -4,26 +4,21 @@ within the common library.
 */}}
 {{- define "common.class.infisicalSecret" -}}
   {{- $rootContext := .rootContext -}}
-  {{- $infisicalSecretObject := .object -}}
+  {{- $obj := .object -}}
 
   {{- $labels := merge
-    ($infisicalSecretObject.labels | default dict)
+    ($obj.labels | default dict)
     (include "common.lib.metadata.allLabels" $rootContext | fromYaml)
   -}}
   {{- $annotations := merge
-    ($infisicalSecretObject.annotations | default dict)
+    ($obj.annotations | default dict)
     (include "common.lib.metadata.globalAnnotations" $rootContext | fromYaml)
   -}}
-
-  {{- $stringData := "" -}}
-  {{- with $infisicalSecretObject.stringData -}}
-    {{- $stringData = (toYaml $infisicalSecretObject.stringData) | trim -}}
-  {{- end -}}
 ---
 apiVersion: secrets.infisical.com/v1alpha1
 kind: InfisicalSecret
 metadata:
-  name: {{ printf "%s-%s" $infisicalSecretObject.name $infisicalSecretObject.identifier }}
+  name: {{ printf "%s-%s" $obj.name $obj.identifier }}
   {{- with $labels }}
   labels:
     {{- range $key, $value := . }}
@@ -37,16 +32,16 @@ metadata:
     {{- end }}
   {{- end }}
 spec:
-  hostAPI: {{ $infisicalSecretObject.hostAPI | default "https://api.infisical.com" }}
-  resyncInterval: {{ $infisicalSecretObject.resyncInterval | default "10" }}
-  {{- if $infisicalSecretObject.authentication}}
+  hostAPI: {{ $obj.hostAPI | default "https://api.infisical.com" }}
+  resyncInterval: {{ $obj.resyncInterval | default "10" }}
+  {{- if $obj.authentication}}
   authentication:
-    {{- tpl (toYaml $infisicalSecretObject.authentication) $ | nindent 4 }}
+    {{- tpl (toYaml $obj.authentication) $ | nindent 4 }}
   {{- else }}
   {{- fail "infisicalSecret.authentication is required" -}}
   {{- end }}
   managedKubeSecretReferences:
-    - secretName: {{ $infisicalSecretObject.name }}
+    - secretName: {{ $obj.name }}
       secretNamespace: {{ $rootContext.Release.Namespace }}
-      creationPolicy: {{ $infisicalSecretObject.creationPolicy | default "Owner"}}
+      creationPolicy: {{ $obj.creationPolicy | default "Owner"}}
 {{- end }}

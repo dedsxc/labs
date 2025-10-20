@@ -524,6 +524,24 @@ infisicalSecret:
     # See https://infisical.com/docs/integrations/platforms/kubernetes/infisical-secret-crd#managedkubesecretreferences-creationpolicy
     creationPolicy: ""
 
+# -- Configure the podDisruptionBudgets for the chart here.
+podDisruptionBudget:
+  # -- Enables or disables the podDisruptionBudget item. Defaults to false
+  enabled: false
+  # -- Provide additional annotations which may be required.
+  annotations: {}
+  # -- Provide additional labels which may be required.
+  labels: {}
+  # -- Configure which controller this service should target
+  controller: main
+  # -- Add custom labels selector. The selector will override the default selector based on controller
+  selector: {}
+  # -- Minimum number or percentage of pods that must remain scheduled
+  minAvailable:
+  # -- Maximum number or percentage of pods that may be simultaneously disrupted
+  maxUnavailable:
+  
+
 # -- Configure the services for the chart here.
 # Additional services can be added by adding a dictionary key similar to the 'main' service.
 # @default -- See below
@@ -600,6 +618,7 @@ service:
         # -- Specify the appProtocol value for the Service.
         # [[ref]](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol)
         appProtocol:
+
 
 # -- Configure the ingresses for the chart here.
 ingress:

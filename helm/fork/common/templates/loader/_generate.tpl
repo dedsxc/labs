@@ -19,6 +19,7 @@ Secondary entrypoint and primary loader for the common chart
   {{- include "common.render.services" $rootContext | nindent 0 -}}
   {{- include "common.render.infisicalSecrets" $rootContext | nindent 0 -}}
   {{- include "common.render.ingresses" $rootContext | nindent 0 -}}
+  {{- include "common.render.podDisruptionBudget" $rootContext | nindent 0 -}}
   {{- include "common.render.serviceMonitors" $rootContext | nindent 0 -}}
   {{- include "common.render.routes" $rootContext | nindent 0 -}}
   {{- include "common.render.secrets" $rootContext | nindent 0 -}}
