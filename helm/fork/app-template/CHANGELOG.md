@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/dedsxc/labs/compare/app-template-1.0.2...app-template-1.0.3) (2025-10-20)
+
+
+### Bug Fixes
+
+* correct typo on name and add default values ([cc347e1](https://github.com/dedsxc/labs/commit/cc347e1e01acd1566c08355e3f4f13cfdf54bfb6))
+
 ## [1.0.2](https://github.com/dedsxc/labs/compare/app-template-1.0.1...app-template-1.0.2) (2025-10-19)
 
 
