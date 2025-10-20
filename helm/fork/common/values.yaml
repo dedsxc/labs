@@ -504,6 +504,23 @@ configMapsFromFolder:
   #       image.png:
   #         binary: true
 
+externalSecret:
+  secret:
+    # -- Enables or disables the ExternalSecret
+    enabled: false
+    # -- Labels to add to the ExternalSecret
+    labels: {}
+    # -- Annotations to add to the ExternalSecret
+    annotations: {}
+    # -- Specify the refresh interval for the ExternalSecret
+    refreshInterval: "1h"
+    # -- Specify the secret store reference for the ExternalSecret
+    secretStoreRef: {}
+    # -- Define the data to be fetched by the ExternalSecret
+    data:
+    # -- Specify the keys to be fetched from the secret store
+    dataFrom: {}
+
 infisicalSecret:
   secret:
     # -- Enables or disables the Secret
