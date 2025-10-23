@@ -1,18 +1,18 @@
 ---
-# Environment
+# Environments
 - name: production
-  color: "ee0701"
+  color: "d62828"
 - name: staging
-  color: "f9fb04"
+  color: "f4c430"
 
-# Categories
+# ⚙️ Other
 - name: github-actions
-  color: "5319e7"
+  color: "1d3557"
 - name: docker
-  color: "5319e7"
-- name: helm
-  color: "5319e7"
+  color: "0077b6"
+- name: helm-charts
+  color: "6a4c93"
 
 # release-please
 - name: "autorelease: pending"
-  color: "7bd3ea"
+  color: "0096c7"
