@@ -134,6 +134,29 @@ instances:
     controller:
       type: deployment
       replicas: 2
+    service:
+      main:
+        enabled: true
+        type: ClusterIP
+        ports:
+          http:
+            enabled: true
+            port: 8080
+            targetPort: 8080
+          rtsp:
+            enabled: true
+            port: 554
+            targetPort: 554
+      second:
+        enabled: true
+        primary: true
+        type: ClusterIP
+        ports:
+          metrics:
+            enabled: true
+            port: 9090
+            targetPort: 9090
+    ingress:
   caca:
     enabled: true
     controller:

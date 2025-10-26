@@ -26,7 +26,7 @@ Probes used by the container.
       {{- else -}}
         {{- $probeSpec := dig "spec" dict $probeValues -}}
 
-        {{- $primaryService := include "common.lib.service.primaryForController" (dict "rootContext" $rootContext "controllerIdentifier" $controllerObject.identifier) | fromYaml -}}
+        {{- $primaryService := include "common.lib.service.primaryForController" (dict "rootContext" $rootContext "controllerIdentifier" $controllerObject.identifier) | fromYaml -}}       
         {{- $primaryServiceDefaultPort := dict -}}
         {{- if $primaryService -}}
           {{- $primaryServiceDefaultPort = include "common.lib.service.primaryPort" (dict "rootContext" $rootContext "serviceObject" $primaryService) | fromYaml -}}
