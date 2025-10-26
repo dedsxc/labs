@@ -83,10 +83,11 @@ Probes used by the container.
             {{- end -}}
           {{- end -}}
         {{- else if $primaryServiceDefaultPort.targetPort -}}
-          {{- if regexMatch "^\\d+$" $primaryServiceDefaultPort.targetPort -}}
-            {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.targetPort | toString | atoi) -}}
+          {{- $targetPortStr := printf "%v" $primaryServiceDefaultPort.targetPort -}}
+          {{- if regexMatch "^\\d+$" $targetPortStr -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" ($targetPortStr | atoi) -}}
           {{- else -}}
-            {{- $_ := set (index $probeDefinition $probeHeader) "port" $primaryServiceDefaultPort.targetPort -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" $targetPortStr -}}
           {{- end -}}
         {{- else if $primaryServiceDefaultPort.port -}}
           {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.port | toString | atoi ) -}}

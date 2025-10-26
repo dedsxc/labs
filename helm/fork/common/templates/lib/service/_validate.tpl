@@ -8,17 +8,6 @@ Validate Service values
   {{- $enabledControllers := (include "common.lib.controller.enabledControllers" (dict "rootContext" $rootContext) | fromYaml ) -}}
   {{- $enabledPorts := include "common.lib.service.enabledPorts" (dict "rootContext" $rootContext "serviceObject" $serviceObject) | fromYaml }}
 
-  {{/* Verify automatic controller detection */}}
-  {{- if not (eq 1 (len $enabledControllers)) -}}
-    {{- if or (not (has "controller" (keys $serviceObject))) (empty (get $serviceObject "controller")) -}}
-      {{- fail (printf "controller field is required because automatic controller detection is not possible. (service: %s)" $serviceObject.identifier ) -}}
-    {{- end -}}
-  {{- end -}}
-
-  {{- if empty (get $serviceObject "controller") -}}
-    {{- fail (printf "controller field is required for Service. (service: %s)" $serviceObject.identifier) -}}
-  {{- end -}}
-
   {{- $serviceController := include "common.lib.controller.getByIdentifier" (dict "rootContext" $rootContext "id" $serviceObject.controller) -}}
   {{- if empty $serviceController -}}
     {{- fail (printf "No enabled controller found with this identifier. (service: '%s', controller: '%s')" $serviceObject.identifier $serviceObject.controller) -}}

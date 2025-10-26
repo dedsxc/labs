@@ -1,22 +1,18 @@
 {{/*
-Return the enabled controllers.
+Return the single controller if enabled.
 */}}
 {{- define "common.lib.controller.enabledControllers" -}}
   {{- $rootContext := .rootContext -}}
+  {{- $controller := $rootContext.Values.controller | default dict -}}
   {{- $enabledControllers := dict -}}
 
-  {{- range $name, $controller := $rootContext.Values.controllers -}}
-    {{- if kindIs "map" $controller -}}
-      {{- /* Enable by default, but allow override */ -}}
-      {{- $controllerEnabled := true -}}
-      {{- if hasKey $controller "enabled" -}}
-        {{- $controllerEnabled = $controller.enabled -}}
-      {{- end -}}
+  {{- $controllerEnabled := true -}}
+  {{- if hasKey $controller "enabled" -}}
+    {{- $controllerEnabled = $controller.enabled -}}
+  {{- end -}}
 
-      {{- if $controllerEnabled -}}
-        {{- $_ := set $enabledControllers $name . -}}
-      {{- end -}}
-    {{- end -}}
+  {{- if $controllerEnabled -}}
+    {{- $_ := set $enabledControllers "controller" $controller -}}
   {{- end -}}
 
   {{- $enabledControllers | toYaml -}}

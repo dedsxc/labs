@@ -3,7 +3,7 @@ Validate controller values
 */}}
 {{- define "common.lib.controller.validate" -}}
   {{- $rootContext := .rootContext -}}
-  {{- $controllerValues := .object -}}
+  {{- $controllerValues := .object.controller -}}
 
   {{- $allowedControllerTypes := list "deployment" "daemonset" "statefulset" "cronjob" "job" -}}
   {{- if not (has $controllerValues.type $allowedControllerTypes) -}}
