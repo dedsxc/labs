@@ -2,7 +2,7 @@
 Secondary entrypoint and primary loader for the common chart
 */}}
 {{- define "common.loader.generate" -}}
-  {{- $rootContext := $ -}}
+  {{- $rootContext := . -}}
   {{- $mergedValues := tpl (deepCopy .Values | toYaml) . | fromYaml -}}
   {{- $_ := set . "Values" $mergedValues -}}
 

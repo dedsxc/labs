@@ -26,7 +26,7 @@ Probes used by the container.
       {{- else -}}
         {{- $probeSpec := dig "spec" dict $probeValues -}}
 
-        {{- $primaryService := include "common.lib.service.primaryForController" (dict "rootContext" $rootContext "controllerIdentifier" $controllerObject.identifier) | fromYaml -}}
+        {{- $primaryService := include "common.lib.service.primaryForController" (dict "rootContext" $rootContext "controllerIdentifier" $controllerObject.identifier) | fromYaml -}}       
         {{- $primaryServiceDefaultPort := dict -}}
         {{- if $primaryService -}}
           {{- $primaryServiceDefaultPort = include "common.lib.service.primaryPort" (dict "rootContext" $rootContext "serviceObject" $primaryService) | fromYaml -}}
@@ -83,10 +83,11 @@ Probes used by the container.
             {{- end -}}
           {{- end -}}
         {{- else if $primaryServiceDefaultPort.targetPort -}}
-          {{- if regexMatch "^\\d+$" $primaryServiceDefaultPort.targetPort -}}
-            {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.targetPort | toString | atoi) -}}
+          {{- $targetPortStr := printf "%v" $primaryServiceDefaultPort.targetPort -}}
+          {{- if regexMatch "^\\d+$" $targetPortStr -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" ($targetPortStr | atoi) -}}
           {{- else -}}
-            {{- $_ := set (index $probeDefinition $probeHeader) "port" $primaryServiceDefaultPort.targetPort -}}
+            {{- $_ := set (index $probeDefinition $probeHeader) "port" $targetPortStr -}}
           {{- end -}}
         {{- else if $primaryServiceDefaultPort.port -}}
           {{- $_ := set (index $probeDefinition $probeHeader) "port" ($primaryServiceDefaultPort.port | toString | atoi ) -}}

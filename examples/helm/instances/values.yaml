@@ -9,63 +9,45 @@ global:
 serviceAccount:
   bitwarden:
     enabled: true
-    staticToken: false
-  test:
-    enabled: true
+    staticToken: true
 
-controllers:
-  main:
-    type: statefulset
-    replicas: 3
-    serviceAccount:
-      identifier: test
-    containers:
-      main:
-        enabled: true
-        image:
-          repository: vaultwarden/server
-          tag: 1.34.3-alpine@sha256:d70118b9dafb8588ee2651ceb5df68db27dcbd8e18467722010644ba48d5d6d6
-        env:
-          DOMAIN: https://{{ .Values.host}}
-        envFrom:
-          # Get secret from external-secret for hashicorp vault provider
-          - secretRef:
-              name: '{{ .Release.Name }}-secret'
-        probes:
-          liveness:
-            enabled: true
-            type: HTTP
-            path: /alive
-          readiness:
-            enabled: true
-            type: HTTP
-            path: /alive
-          startup:
-            enabled: true
-            path: /alive
-        resources:
-          limits:
-            cpu: 1
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 128Mi
-  second:
-    enabled: true
-    type: statefulset
-    replicas: 3
-    serviceAccount:
-      identifier: test
-    containers:
-      main:
-        enabled: true
-        image:
-          repository: vaultwarden/server
-          tag: 1.34.3-alpine@sha256:d70118b9dafb8588ee2651ceb5df68db27dcbd8e18467722010644ba48d5d6d6
+controller:
+  type: statefulset
+  replicas: 3
+  containers:
+    main:
+      enabled: true
+      image:
+        repository: vaultwarden/server
+        tag: 1.34.3-alpine@sha256:d70118b9dafb8588ee2651ceb5df68db27dcbd8e18467722010644ba48d5d6d6
+      env:
+        DOMAIN: https://{{ .Values.host}}
+      envFrom:
+        # Get secret from external-secret for hashicorp vault provider
+        - secretRef:
+            name: '{{ .Release.Name }}-secret'
+      probes:
+        liveness:
+          enabled: true
+          type: HTTP
+          path: /alive
+        readiness:
+          enabled: true
+          type: HTTP
+          path: /alive
+        startup:
+          enabled: true
+          path: /alive
+      resources:
+        limits:
+          cpu: 1
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 128Mi
 
 podDisruptionBudget:
   enabled: true
-  controller: main
   maxUnavailable: 1
   annotations:
     example.com/custom-annotation: "true"
@@ -145,3 +127,41 @@ ingress:
     tls:
       - hosts:
           - "{{ .Values.host }}"
+
+instances:
+  bidule:
+    enabled: true
+    controller:
+      type: deployment
+      replicas: 2
+    service:
+      main:
+        enabled: true
+        type: ClusterIP
+        ports:
+          http:
+            enabled: true
+            port: 8080
+            targetPort: 8080
+          rtsp:
+            enabled: true
+            port: 554
+            targetPort: 554
+      second:
+        enabled: true
+        primary: true
+        type: ClusterIP
+        ports:
+          metrics:
+            enabled: true
+            port: 9090
+            targetPort: 9090
+    ingress:
+  caca:
+    enabled: true
+    controller:
+      containers:
+        main:
+          env:
+            CUSTOM_ENV: custom_value
+            DOMAIN: https://{{ .Values.host}}-override

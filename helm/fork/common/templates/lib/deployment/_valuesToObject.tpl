@@ -6,7 +6,7 @@ Convert Deployment values to an object
   {{- $identifier := .id -}}
   {{- $objectValues := .values -}}
 
-  {{- $strategy := default "Recreate" $objectValues.strategy -}}
+  {{- $strategy := default "RollingUpdate" $objectValues.strategy -}}
   {{- $_ := set $objectValues "strategy" $strategy -}}
 
   {{- /* Return the Deployment object */ -}}

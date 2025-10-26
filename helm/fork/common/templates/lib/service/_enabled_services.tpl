@@ -21,7 +21,6 @@ Return the enabled services.
 
   {{- range $identifier, $objectValues := $enabledServices -}}
     {{- $object := include "common.lib.valuesToObject" (dict "rootContext" $rootContext "id" $identifier "values" $objectValues "itemCount" (len $enabledServices)) | fromYaml -}}
-    {{- $object = include "common.lib.service.autoDetectController" (dict "rootContext" $rootContext "object" $object) | fromYaml -}}
     {{- $_ := set $enabledServices $identifier $object -}}
   {{- end -}}
 
