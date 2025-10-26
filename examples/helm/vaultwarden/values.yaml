@@ -48,7 +48,6 @@ controller:
 
 podDisruptionBudget:
   enabled: true
-  controller: main
   maxUnavailable: 1
   annotations:
     example.com/custom-annotation: "true"
@@ -128,3 +127,12 @@ ingress:
     tls:
       - hosts:
           - "{{ .Values.host }}"
+
+instances:
+  bidule:
+    enabled: true
+    controller:
+      type: deployment
+      replicas: 2
+  caca:
+    enabled: true

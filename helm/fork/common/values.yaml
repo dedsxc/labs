@@ -118,7 +118,7 @@ controller:
   # -- Number of desired pods. When using a HorizontalPodAutoscaler, set this to `null`.
   replicas: 1
   # -- Set the controller upgrade strategy
-  # For Deployments, valid values are Recreate (default) and RollingUpdate.
+  # For Deployments, valid values are Recreate and RollingUpdate (default).
   # For StatefulSets, valid values are OnDelete and RollingUpdate (default).
   # DaemonSets/CronJobs/Jobs ignore this.
   strategy: RollingUpdate

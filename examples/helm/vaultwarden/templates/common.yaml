@@ -1,14 +1,18 @@
 ---
-{{- include "common.loader.init" . }}
-
-{{- define "app-template.hardcodedValues" -}}
-# Set the nameOverride based on the release name if no override has been set
-{{ if not .Values.global.nameOverride }}
-global:
-  nameOverride: "{{ .Release.Name }}"
-{{ end }}
-{{- end -}}
-{{- $_ := mergeOverwrite .Values (include "app-template.hardcodedValues" . | fromYaml) -}}
-
-{{/* Render the templates */}}
-{{ include "common.loader.generate" . }}
+{{- range $name, $instance := .Values.instances }}
+{{- if $instance.enabled }}
+  {{- $instanceValues := mergeOverwrite (deepCopy $.Values) $instance -}}
+  {{- $global := dict
+        "nameOverride" $name
+  -}}
+  {{- $_ := set $instanceValues "global" (merge $global (get $instanceValues "global" | default dict)) -}}
+  {{- $ctx := dict
+        "Values" $instanceValues
+        "Release" $.Release
+        "Chart" $.Chart
+        "Subcharts" $.Subcharts 
+        "Capabilities" $.Capabilities
+  -}}
+  {{- include "common.loader.all" $ctx }}
+{{- end }}
+{{- end }}
