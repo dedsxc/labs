@@ -1,3 +1,6 @@
+{{/*
+Return a configMap Object by its Identifier.	
+*/}}
 {{- define "common.lib.configMap.getByIdentifier" -}}
   {{- $rootContext := .rootContext -}}
   {{- $identifier := .id -}}

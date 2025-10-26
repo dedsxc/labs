@@ -1,0 +1,14 @@
+---
+{{- $instanceValues := mergeOverwrite (deepCopy $.Values) . -}}
+{{- $global := dict
+      "nameOverride" .Release.Name
+-}}
+{{- $_ := set $instanceValues "global" (merge $global (get $instanceValues "global" | default dict)) -}}
+{{- $ctx := dict
+      "Values" $instanceValues
+      "Release" $.Release
+      "Chart" $.Chart
+      "Subcharts" $.Subcharts 
+      "Capabilities" $.Capabilities
+-}}
+{{- include "common.loader.all" $ctx }}

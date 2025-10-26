@@ -136,3 +136,9 @@ instances:
       replicas: 2
   caca:
     enabled: true
+    controller:
+      containers:
+        main:
+          env:
+            CUSTOM_ENV: custom_value
+            DOMAIN: https://{{ .Values.host}}-override
