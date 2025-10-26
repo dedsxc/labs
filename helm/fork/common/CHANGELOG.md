@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/dedsxc/labs/compare/common-1.2.1...common-2.0.0) (2025-10-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* allow only one controller
+
+### Code Refactoring
+
+* simplify config deployment ([#119](https://github.com/dedsxc/labs/issues/119)) ([2e7168d](https://github.com/dedsxc/labs/commit/2e7168dca716ab38296410c5fdf8b27bc653d7c3))
+
 ## [1.2.1](https://github.com/dedsxc/labs/compare/common-1.2.0...common-1.2.1) (2025-10-20)
 
 
