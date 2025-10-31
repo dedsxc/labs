@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.1...cnpg-cluster-1.2.2) (2025-10-31)
+
+
+### Bug Fixes
+
+* **psql:** custom default name for superuser secret ([#125](https://github.com/dedsxc/labs/issues/125)) ([8feb705](https://github.com/dedsxc/labs/commit/8feb705f54e46a464c580e2d77cddcc3b7ec8020))
+
 ## [1.2.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.0...cnpg-cluster-1.2.1) (2025-10-17)
 
 
