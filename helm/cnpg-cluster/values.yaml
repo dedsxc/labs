@@ -4,12 +4,12 @@ cluster:
   instances: 2
   annotations: {}
   affinity: {}
-  image: 
+  image:
     name: ghcr.io/cloudnative-pg/postgresql:16.2-16
   storage:
     storageClass: openebs-hostpath
     size: 8Gi
-  # -- Activate wal storage for high availability 
+  # -- Activate wal storage for high availability
   walStorage:
     storageClass: openebs-hostpath
     size: 1Gi
@@ -21,16 +21,16 @@ cluster:
 
   # -- Postgresql configuration
   postgresql:
-    parameters: 
+    parameters:
       max_connections: "300"
-    
+
     # -- Enable extension
-    # shared_preload_libraries: 
+    # shared_preload_libraries:
     #   - extension_name
     shared_preload_libraries: []
-  
+
   # -- Admin superuser
-  superuserSecret: ""
+  superuserSecret: superuser-secret
   enableSuperuserAccess: true
 
   # -- Define roles that will be created in the cluster at startup
@@ -55,19 +55,19 @@ cluster:
   #           - CREATE DATABASE angus
   bootstrap:
     initdb: {}
-  
-  resources: 
+
+  resources:
     limits:
       cpu: '2'
       memory: 4Gi
     requests:
       cpu: 100m
       memory: 512Mi
-  
+
   # -- Enable monitoring
   monitoring:
     enabled: false
-  
+
   # -- Enable backup to object store for this cluster
   # backups:
   #   enabled: true
@@ -78,7 +78,7 @@ cluster:
   #         barmanObjectName: s3-storage
   backups:
     enabled: false
-  
+
   # -- Recovery/bootstrap cluster from external backup
   # -- https://cloudnative-pg.io/documentation/1.26/recovery
   # recovery:
@@ -130,7 +130,7 @@ database:
 #   enabled: true
 #   name: s3-storage
 #   spec:
-#     configuration: 
+#     configuration:
 #       destinationPath: s3://backup
 #       endpointURL: http://s3.minio.svc.cluster.local:9000
 #       s3Credentials:

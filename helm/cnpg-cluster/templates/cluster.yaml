@@ -24,14 +24,14 @@ spec:
   resources:
     {{- toYaml .Values.cluster.resources | nindent 4 }}
   superuserSecret:
-    name: {{ .Values.cluster.superuserSecret | default "cloudnative-pg" }}
+    name: {{ .Values.cluster.superuserSecret | default "superuser-secret" }}
   enablePDB: true
   enableSuperuserAccess: {{ .Values.cluster.enableSuperuserAccess | default false }}
   postgresql:
     shared_preload_libraries:
       {{- toYaml .Values.cluster.postgresql.shared_preload_libraries | nindent 6 }}
     parameters:
-      {{- toYaml .Values.cluster.postgresql.parameters | nindent 6 }}  
+      {{- toYaml .Values.cluster.postgresql.parameters | nindent 6 }}
   managed:
     roles:
       {{- toYaml .Values.cluster.roles | nindent 6 }}
@@ -52,6 +52,6 @@ spec:
   {{ end }}
 
   {{- if .Values.cluster.externalClusters.enabled }}
-  externalClusters: 
+  externalClusters:
   {{- toYaml .Values.cluster.externalClusters.config | nindent 4 }}
   {{ end }}
