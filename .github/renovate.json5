@@ -11,7 +11,7 @@
       "description": "Auto merge GitHub Actions",
       "groupName": "github-actions",
       "matchDatasources": ["github-tags"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest", "pinDigest"],
       "automerge": true
     },
     // Containers
@@ -19,22 +19,26 @@
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["digest", "pinDigest"],
       "commitMessagePrefix": "chore({{depName}}): ",
+      "groupName": "container digests",
       "automerge": true
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["patch"],
+      "groupName": "patch containers",
       "commitMessagePrefix": "fix({{depName}}): "
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["minor"],
+      "groupName": "minor containers",
       "commitMessagePrefix": "feat({{depName}}): "
     },
     {
       "matchFileNames": ["containers/**"],
       "matchUpdateTypes": ["major"],
-      "commitMessagePrefix": "feat!({{depName}}): "
+      "groupName": "major containers",
+      "commitMessagePrefix": "BREAKING CHANGE({{depName}}): "
     }
   ]
 }
