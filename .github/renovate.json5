@@ -23,19 +23,20 @@
       "automerge": true
     },
     {
-      "matchFileNames": ["containers/**"],
+      "matchDatasources": ["docker"],
       "matchUpdateTypes": ["patch"],
       "groupName": "patch containers",
-      "commitMessagePrefix": "fix({{depName}}): "
+      "commitMessagePrefix": "fix({{depName}}): ",
+      "automerge": true
     },
     {
-      "matchFileNames": ["containers/**"],
+      "matchDatasources": ["docker"],
       "matchUpdateTypes": ["minor"],
       "groupName": "minor containers",
       "commitMessagePrefix": "feat({{depName}}): "
     },
     {
-      "matchFileNames": ["containers/**"],
+      "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
       "groupName": "major containers",
       "commitMessagePrefix": "BREAKING CHANGE({{depName}}): "
