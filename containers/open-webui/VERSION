@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-version="main"
+version=$(grep FROM containers/open-webui/Dockerfile | awk -F '[:@]' '{print $2}')
 printf "%s" "${version}"
