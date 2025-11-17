@@ -9,7 +9,7 @@
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **[Portfolio](https://kien.cc)**       | ![Status](https://status.kien.cc/api/badge/9/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
 | **[GPT](https://chat.kien.cc)**        | ![Status](https://status.kien.cc/api/badge/11/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
-| **[Outline](https://outline.kien.cc)** | ![Status](https://status.kien.cc/api/badge/10/status?upColor=%237CFFEA&downColor=23FF3C38&style=for-the-badge)  |
+| **[Outline](https://outline.kien.cc)** | ![Status](https://status.kien.cc/api/badge/10/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
 | **[Squoosh](https://squoosh.kien.cc)** | ![Status](https://status.kien.cc/api/badge/18/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
 
 </div>
