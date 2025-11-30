@@ -7,7 +7,7 @@ metadata:
 spec:
   affinity: {{ .Values.cluster.affinity | toYaml | nindent 4 }}
   instances: {{ .Values.cluster.instances | default 2 }}
-  imageName: {{ .Values.cluster.image.name | default "ghcr.io/cloudnative-pg/postgresql:16.2-16" }}
+  imageName: {{ .Values.cluster.image.name | default "ghcr.io/cloudnative-pg/postgresql:latest" }}
   imagePullPolicy: {{ .Values.cluster.image.pullPolicy | default "IfNotPresent" }}
   {{- if .Values.cluster.imagePullSecrets }}
   imagePullSecrets:
@@ -19,7 +19,7 @@ spec:
     size: {{ .Values.cluster.storage.size | default "10Gi" }}
     storageClass: {{ .Values.cluster.storage.storageClass | default "openebs-hostpath" }}
   walStorage:
-    size: {{ .Values.cluster.walStorage.size | default "1Gi" }}
+    size: {{ .Values.cluster.walStorage.size | default "4Gi" }}
     storageClass: {{ .Values.cluster.walStorage.storageClass | default "openebs-hostpath" }}
   resources:
     {{- toYaml .Values.cluster.resources | nindent 4 }}
