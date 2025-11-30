@@ -2,10 +2,10 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: {{ printf "%s-cluster-backup" .Release.Name | default "cloudnative-pg-cluster-backup" }}
+  name: {{ printf "%s-cluster-backup" .Release.Name }}
 spec:
   cluster:
-    name: {{ printf "%s-cluster" .Release.Name | default "cloudnative-pg-cluster" }}
+    name: {{ printf "%s-cluster" .Release.Name }}
   schedule: {{ .Values.objectStore.schedule | default "0 0 0 * * *" }}
   backupOwnerReference: self
   immediate: true
