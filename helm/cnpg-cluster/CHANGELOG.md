@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.2...cnpg-cluster-2.0.0) (2025-11-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove creation of s3 secret for backup
+
+### Bug Fixes
+
+* update default values ([#146](https://github.com/dedsxc/labs/issues/146)) ([3a9bb03](https://github.com/dedsxc/labs/commit/3a9bb0349acdc88b42810eb6805daee3ba9fb6ad))
+
 ## [1.2.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.1...cnpg-cluster-1.2.2) (2025-10-31)
 
 
