@@ -61,7 +61,7 @@ cluster:
       memory: 8Gi
     requests:
       cpu: "4"
-      memory: 8Mi
+      memory: 8Gi
 
   # -- Enable monitoring
   monitoring:
