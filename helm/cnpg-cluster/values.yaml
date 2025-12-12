@@ -121,6 +121,10 @@ database:
   #     extensions:
   #       - name: extenstion_name
   #         ensure: present
+  #     schemas:
+  #       - name: datadog
+  #         owner: datadog
+  #         ensure: present
   list: []
 
 # -- Object Store configuration

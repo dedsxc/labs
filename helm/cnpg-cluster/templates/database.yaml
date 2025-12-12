@@ -13,6 +13,9 @@ spec:
 {{- if .extensions }}
   extensions: {{- toYaml .extensions | nindent 4 }}
 {{- end }}
+{{- if .schemas }}
+  schemas: {{- toYaml .schemas | nindent 4 }}
+{{- end }}
 ---
 {{- if $.Values.database.autoGeneratePassword}}
 apiVersion: external-secrets.io/v1
@@ -71,7 +74,7 @@ spec:
 {{- if and .recovery (eq .recovery.enabled true) }}
 apiVersion: batch/v1
 kind: Job
-metadata: 
+metadata:
   generateName: {{ .name }}-
   annotations:
     argocd.argoproj.io/hook: PostSync
@@ -113,7 +116,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .recovery.dbSourceSecretName }}
-                  key: DB_DATABASE         
+                  key: DB_DATABASE
           command: [ "sh", "-c" ]
           args:
             - |
