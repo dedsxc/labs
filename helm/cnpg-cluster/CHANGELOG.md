@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-2.0.0...cnpg-cluster-2.1.0) (2025-12-12)
+
+
+### Features
+
+* **schema:** add schema management on database ([ae5fe99](https://github.com/dedsxc/labs/commit/ae5fe992da6cf34d7ca52ba4124fe14236af3ac0))
+
 ## [2.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-1.2.2...cnpg-cluster-2.0.0) (2025-11-30)
 
 
