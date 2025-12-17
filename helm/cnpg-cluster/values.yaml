@@ -79,7 +79,7 @@ cluster:
   #     isWALArchiver: true
   #     parameters:
   #       barmanObjectName: s3-storage
-  plugins: {}
+  plugins: []
 
   # -- Connect to an external cluster for recovery
   # https://cloudnative-pg.io/documentation/1.28/recovery/
