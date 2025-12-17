@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.0.0...cnpg-cluster-3.0.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* typo on type var ([ca0764c](https://github.com/dedsxc/labs/commit/ca0764c4414c2042b01733176636af77089e9eee))
+
 ## [3.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-2.1.0...cnpg-cluster-3.0.0) (2025-12-17)
 
 
