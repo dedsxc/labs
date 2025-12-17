@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-2.1.0...cnpg-cluster-3.0.0) (2025-12-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename keys variable
+
+### Features
+
+* put more option to configure cluster ([#160](https://github.com/dedsxc/labs/issues/160)) ([4c32922](https://github.com/dedsxc/labs/commit/4c329221f30f57257210bed63fef1a259c753cff))
+
 ## [2.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-2.0.0...cnpg-cluster-2.1.0) (2025-12-12)
 
 
