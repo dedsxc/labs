@@ -5,13 +5,13 @@ cluster:
   affinity: {}
   image:
     name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:d393376fb67a2df53bb09acae89b39b2742b77519b4bc59f337ca9dfb7455cb1
-  # storage:
-  #   storageClass: openebs-hostpath
-  #   size: 8Gi
+  storage:
+    storageClass: openebs-hostpath
+    size: 8Gi
   # -- Activate wal storage for high availability
-  # walStorage:
-  #   storageClass: openebs-hostpath
-  #   size: 1Gi
+  walStorage:
+    storageClass: openebs-hostpath
+    size: 1Gi
 
   # -- Enable external service to expose the primary instance
   externalService:
@@ -19,6 +19,7 @@ cluster:
     targetInstanceRole: primary
 
   # -- Postgresql configuration
+  # https://cloudnative-pg.io/documentation/1.28/postgresql_conf/
   postgresql:
     parameters:
       max_connections: "300"
@@ -52,8 +53,12 @@ cluster:
   #     encoding: 'LATIN1'
   #     postInitSQL:
   #           - CREATE DATABASE angus
-  bootstrap:
-    initdb: {}
+  # -- Recover from backup
+  # https://cloudnative-pg.io/documentation/1.28/recovery/
+  # bootstrap:
+  #   recovery:
+  #     source: origin
+  bootstrap: {}
 
   resources:
     limits:
@@ -63,47 +68,29 @@ cluster:
       cpu: "4"
       memory: 8Gi
 
-  # -- Enable monitoring
-  monitoring:
-    enabled: false
+  # -- Monitoring configuration
+  # https://cloudnative-pg.io/documentation/1.28/monitoring/
+  monitoring: {}
 
   # -- Enable backup to object store for this cluster
-  # backups:
-  #   enabled: true
-  #   plugins:
-  #     - name: barman-cloud.cloudnative-pg.io
-  #       isWALArchiver: true
-  #       parameters:
-  #         barmanObjectName: s3-storage
-  backups:
-    enabled: false
-
-  # -- Recovery/bootstrap cluster from external backup
-  # -- https://cloudnative-pg.io/documentation/1.26/recovery
-  # recovery:
-  #   enabled: false
-  #   config:
-  #     source: origin
-  #     volumeSnapshots:
-  #       storage:
-  #         name: <snapshot name>
-  #       kind: VolumeSnapshot
-  #       apiGroup: snapshot.storage.k8s.io
-  recovery:
-    enabled: false
+  # https://cloudnative-pg.io/plugin-barman-cloud/docs/concepts/
+  # plugins:
+  #   - name: barman-cloud.cloudnative-pg.io
+  #     isWALArchiver: true
+  #     parameters:
+  #       barmanObjectName: s3-storage
+  plugins: {}
 
   # -- Connect to an external cluster for recovery
+  # https://cloudnative-pg.io/documentation/1.28/recovery/
   # externalClusters:
-  #   enabled: true
-  #   config:
-  #     - name: origin
-  #       plugin:
-  #         name: barman-cloud.cloudnative-pg.io
-  #         parameters:
-  #           barmanObjectName: cluster-example-backup
-  #           serverName: cluster-example
-  externalClusters:
-    enabled: false
+  #   - name: origin
+  #     plugin:
+  #       name: barman-cloud.cloudnative-pg.io
+  #       parameters:
+  #         barmanObjectName: cluster-example-backup
+  #         serverName: cluster-example
+  externalClusters: {}
 
 # -- Create db on cloudnative-pg
 database:
