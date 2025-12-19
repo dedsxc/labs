@@ -1,0 +1,12 @@
+{{- if .Values.cluster.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ printf "%s-cluster-monitor" .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      cnpg.io/cluster: {{ printf "%s-cluster" .Release.Name }}
+  podMetricsEndpoints:
+  - port: metrics
+{{- end }}
