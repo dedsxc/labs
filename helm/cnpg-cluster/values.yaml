@@ -19,7 +19,7 @@ cluster:
     targetInstanceRole: primary
 
   # -- Postgresql configuration
-  # https://cloudnative-pg.io/documentation/1.28/postgresql_conf/
+  # https://cloudnative-pg.io/docs/1.28/postgresql_conf/
   postgresql:
     parameters:
       max_connections: "300"
@@ -53,24 +53,31 @@ cluster:
   #     encoding: 'LATIN1'
   #     postInitSQL:
   #           - CREATE DATABASE angus
+  #
   # -- Recover from backup
-  # https://cloudnative-pg.io/documentation/1.28/recovery/
+  # https://cloudnative-pg.io/docs/1.28/recovery/
   # bootstrap:
   #   recovery:
   #     source: origin
   bootstrap: {}
 
-  resources:
-    limits:
-      cpu: "4"
-      memory: 8Gi
-    requests:
-      cpu: "4"
-      memory: 8Gi
+  # -- Resource requests and limits
+  # resources:
+  #   limits:
+  #     cpu: "4"
+  #     memory: 8Gi
+  #   requests:
+  #     cpu: "4"
+  #     memory: 8Gi
+  resources: {}
 
   # -- Monitoring configuration
-  # https://cloudnative-pg.io/documentation/1.28/monitoring/
+  # https://cloudnative-pg.io/docs/1.28/monitoring/
   monitoring: {}
+
+  # -- Create PodMonitor for Prometheus Operator
+  podMonitor:
+    enabled: false
 
   # -- Enable backup to object store for this cluster
   # https://cloudnative-pg.io/plugin-barman-cloud/docs/concepts/
@@ -82,7 +89,7 @@ cluster:
   plugins: []
 
   # -- Connect to an external cluster for recovery
-  # https://cloudnative-pg.io/documentation/1.28/recovery/
+  # https://cloudnative-pg.io/docs/1.28/recovery/
   # externalClusters:
   #   - name: origin
   #     plugin:
