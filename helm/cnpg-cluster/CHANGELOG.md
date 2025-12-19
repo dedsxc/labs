@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.0.1...cnpg-cluster-3.1.0) (2025-12-19)
+
+
+### Features
+
+* add pod monitor ([359447b](https://github.com/dedsxc/labs/commit/359447b527b8dce8c36435b58d33a2fa19e66b89))
+
 ## [3.0.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.0.0...cnpg-cluster-3.0.1) (2025-12-17)
 
 
