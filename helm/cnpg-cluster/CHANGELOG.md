@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.2.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.1.0...cnpg-cluster-3.2.0) (2025-12-24)
+
+
+### Features
+
+* **cnpg:** add more functionality ([dd1be99](https://github.com/dedsxc/labs/commit/dd1be99448dbf3cde2ca1bf6028db08d2051edc5))
+* support image catalog ([89f3643](https://github.com/dedsxc/labs/commit/89f3643b19fe5a2dec74032024d75841d58f3a09))
+* support logical replication ([cbfa975](https://github.com/dedsxc/labs/commit/cbfa975fca261c677a2d1b3f88e044312a3c58e7))
+
 ## [3.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.0.1...cnpg-cluster-3.1.0) (2025-12-19)
 
 
