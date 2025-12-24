@@ -3,8 +3,20 @@ cluster:
   instances: 2
   annotations: {}
   affinity: {}
+
+  # -- Select image to use
+  # imageCatalogRef:
+  #   apiGroup: postgresql.cnpg.io
+  #   kind: ClusterImageCatalog
+  #   name: postgresql-standard-trixie
+  #   major: 16
+  imageCatalogRef: {}
+
+  # WARNING: Either use imageCatalogRef or specify the image directly
+  # -- Image configuration
   image:
     name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:d393376fb67a2df53bb09acae89b39b2742b77519b4bc59f337ca9dfb7455cb1
+
   storage:
     storageClass: openebs-hostpath
     size: 8Gi
@@ -101,6 +113,17 @@ cluster:
 
 # -- Create db on cloudnative-pg
 database:
+  # -- Enable logical replication for each database. It will create publication/subscription for upgrading purposes.
+  # -- https://cloudnative-pg.io/docs/1.28/logical_replication
+  # -- https://www.postgresql.org/docs/current/logical-replication-subscription.html
+  logicalReplication:
+    enabled: false
+    # Possible values: publisher, subscriber
+    role: "publisher"
+    # Specify external cluster name for subscriber role only
+    # You must define externalClusterName in cluster.externalClusters
+    externalClusterName: ""
+
   # -- Create db on cloudnative-pg
   # list:
   #   - name: database1

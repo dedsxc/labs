@@ -16,7 +16,42 @@ spec:
 {{- if .schemas }}
   schemas: {{- toYaml .schemas | nindent 4 }}
 {{- end }}
+
 ---
+
+{{- if $.Values.database.logicalReplication.enabled }}
+{{- if eq $.Values.database.logicalReplication.role "publisher" }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Publication
+metadata:
+  name: {{ .name }}-publisher
+spec:
+  cluster:
+    name: {{ printf "%s-cluster" $.Release.Name }}
+  dbname: {{ .name  }}
+  name: {{ .name }}-publisher
+  publicationReclaimPolicy: delete
+  target:
+    allTables: true
+{{- else if eq $.Values.database.logicalReplication.role "subscriber" }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Subscription
+metadata:
+  name: {{ .name }}-subscription
+spec:
+  cluster:
+    name: {{ printf "%s-cluster" $.Release.Name }}
+  dbname: {{ .name  }}
+  name: {{ .name }}-subscription
+  externalClusterName: {{ $.Values.database.logicalReplication.externalClusterName }}
+  publicationName: {{ .name }}-publisher
+  subscriptionReclaimPolicy: delete
+
+{{- end}}
+{{- end}}
+
+---
+
 {{- if $.Values.database.autoGeneratePassword}}
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

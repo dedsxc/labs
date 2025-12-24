@@ -7,7 +7,12 @@ metadata:
 spec:
   affinity: {{ .Values.cluster.affinity | toYaml | nindent 4 }}
   instances: {{ .Values.cluster.instances | default 2 }}
-  imageName: {{ .Values.cluster.image.name | default "ghcr.io/cloudnative-pg/postgresql:latest" }}
+  {{- if and .Values.cluster.imageCatalogRef .Values.cluster.imageCatalogRef.name }}
+  imageCatalogRef:
+  {{- toYaml .Values.cluster.imageCatalogRef | nindent 4 }}
+  {{- else }}
+  imageName: {{ .Values.cluster.image.name | quote }}
+  {{- end }}
   imagePullPolicy: {{ .Values.cluster.image.pullPolicy | default "IfNotPresent" }}
   {{- if .Values.cluster.imagePullSecrets }}
   imagePullSecrets:
