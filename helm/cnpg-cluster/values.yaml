@@ -109,7 +109,7 @@ cluster:
   #       parameters:
   #         barmanObjectName: cluster-example-backup
   #         serverName: cluster-example
-  externalClusters: {}
+  externalClusters: []
 
 # -- Create db on cloudnative-pg
 database:
@@ -120,12 +120,16 @@ database:
   # -- https://cloudnative-pg.io/docs/1.28/logical_replication
   # -- https://www.postgresql.org/docs/current/logical-replication-subscription.html
   logicalReplication:
-    enabled: false
-    # Possible values: publisher, subscriber
-    role: "publisher"
-    # Specify external cluster name for subscriber role only
-    # You must define externalClusterName in cluster.externalClusters
-    externalClusterName: ""
+    # Either you enable publication or subscription, not both
+    publication:
+      # Enable publication for each database
+      enabled: false
+    subscription:
+      enabled: false
+      # You must define externalClusterName in cluster.externalClusters to use subscription
+      externalClusterName: ""
+      # List of databases to subscribe to external cluster
+      databaseList: []
 
   # -- Create db on cloudnative-pg
   # list:
