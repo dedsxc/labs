@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.3](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.2...cnpg-cluster-3.2.3) (2025-12-26)
+
+
+### Bug Fixes
+
+* use underscore in logicalreplication name ([b784327](https://github.com/dedsxc/labs/commit/b784327ae433b5444912b69176920119844ab4a2))
+
 ## [3.2.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.1...cnpg-cluster-3.2.2) (2025-12-26)
 
 
