@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.1...cnpg-cluster-3.2.2) (2025-12-26)
+
+
+### Bug Fixes
+
+* unique metadata name for each db ([9b6494c](https://github.com/dedsxc/labs/commit/9b6494ceec07d98e863b4e594e5a7bfad5f047de))
+
 ## [3.2.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.0...cnpg-cluster-3.2.1) (2025-12-26)
 
 
