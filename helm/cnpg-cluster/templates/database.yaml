@@ -4,7 +4,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: {{ printf "%s" .name }}
+  name: {{ printf "%s-%s-%s" .name $.Release.Name "cluster" }}
 spec:
   name: {{ .name }}
   owner: {{ .owner }}
