@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.0...cnpg-cluster-3.2.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* redo logicalReplication ([0b58791](https://github.com/dedsxc/labs/commit/0b587917750f8a2c684eb42e1c8dc8a3d7436c86))
+
 ## [3.2.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.1.0...cnpg-cluster-3.2.0) (2025-12-24)
 
 
