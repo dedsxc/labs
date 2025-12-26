@@ -9,9 +9,9 @@ spec:
   cluster:
     name: {{ printf "%s-cluster" $.Release.Name }}
   dbname: {{ $databaseName }}
-  name: {{ $databaseName }}-subscription
+  name: {{ $databaseName }}_subscription
   externalClusterName: {{ $.Values.database.logicalReplication.subscription.externalClusterName }}
-  publicationName: {{ $databaseName }}-publisher
+  publicationName: {{ $databaseName }}_publisher
   subscriptionReclaimPolicy: delete
 {{- end}}
 {{- end }}

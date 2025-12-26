@@ -28,7 +28,7 @@ spec:
   cluster:
     name: {{ printf "%s-cluster" $.Release.Name }}
   dbname: {{ .name  }}
-  name: {{ .name }}-publisher
+  name: {{ .name }}_publisher
   publicationReclaimPolicy: delete
   target:
     allTables: true
