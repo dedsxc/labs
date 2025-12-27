@@ -116,21 +116,6 @@ database:
   # Auto generate password for each database
   autoGeneratePassword: true
 
-  # -- Enable logical replication for each database. It will create publication/subscription for upgrading purposes.
-  # -- https://cloudnative-pg.io/docs/1.28/logical_replication
-  # -- https://www.postgresql.org/docs/current/logical-replication-subscription.html
-  logicalReplication:
-    # Either you enable publication or subscription, not both
-    publication:
-      # Enable publication for each database
-      enabled: false
-    subscription:
-      enabled: false
-      # You must define externalClusterName in cluster.externalClusters to use subscription
-      externalClusterName: ""
-      # List of databases to subscribe to external cluster
-      databaseList: []
-
   # -- Create db on cloudnative-pg
   # list:
   #   - name: database1
@@ -149,7 +134,19 @@ database:
   #       - name: datadog
   #         owner: datadog
   #         ensure: present
-  list: []
+  #     # -- Enable logical replication for each database. It will create publication/subscription for upgrading purposes.
+  #     # -- https://cloudnative-pg.io/docs/1.28/logical_replication
+  #     # -- https://www.postgresql.org/docs/current/logical-replication-subscription.html
+  #     logicalReplication:
+  #       # Either you enable publication or subscription, not both
+  #       publication:
+  #         enabled: false
+  #         target: {}
+  #       subscription:
+  #         enabled: false
+  #         # You must define externalClusterName in cluster.externalClusters to use subscription
+  #         externalClusterName: ""
+  # list: []
 
 # -- Object Store configuration
 # objectStore:

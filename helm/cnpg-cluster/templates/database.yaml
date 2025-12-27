@@ -19,7 +19,7 @@ spec:
 
 ---
 
-{{- if $.Values.database.logicalReplication.publication.enabled }}
+{{- if .logicalReplication.publication.enabled }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Publication
 metadata:
@@ -30,10 +30,29 @@ spec:
   dbname: {{ .name  }}
   name: {{ .name }}_publisher
   publicationReclaimPolicy: delete
+  {{- if not .logicalReplication.publication.target }}
+  {{- fail "target must be defined when enabling publication logical replication" -}}
+  {{- end }}
   target:
-    allTables: true
+    {{- toYaml .logicalReplication.publication.target | nindent 4 }}
 {{- end }}
-
+{{- if .logicalReplication.subscription.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Subscription
+metadata:
+  name: {{ .name }}-subscription
+spec:
+  cluster:
+    name: {{ printf "%s-cluster" $.Release.Name }}
+  dbname: {{ .name }}
+  name: {{ .name }}_subscription
+  {{- if not .logicalReplication.subscription.externalClusterName }}
+  {{- fail "externalClusterName must be defined when enabling subscription logical replication" -}}
+  {{- end }}
+  externalClusterName: {{ .logicalReplication.subscription.externalClusterName }}
+  publicationName: {{ .name }}_publisher
+  subscriptionReclaimPolicy: delete
+{{- end }}
 ---
 
 {{- if $.Values.database.autoGeneratePassword}}
