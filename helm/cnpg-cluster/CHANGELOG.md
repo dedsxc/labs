@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.3.0...cnpg-cluster-3.3.1) (2025-12-27)
+
+
+### Bug Fixes
+
+* **logical-replication:** verify key existence before enabling publication/subscription ([#177](https://github.com/dedsxc/labs/issues/177)) ([d745f49](https://github.com/dedsxc/labs/commit/d745f49cd3a82b020787eaedeb58d1d841fe1af8))
+
 ## [3.3.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.3...cnpg-cluster-3.3.0) (2025-12-27)
 
 
