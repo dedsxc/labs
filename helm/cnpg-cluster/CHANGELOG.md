@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.3...cnpg-cluster-3.3.0) (2025-12-27)
+
+
+### Features
+
+* **cnpg-cluster:** refactor logical replication to support per-database config ([0c718c9](https://github.com/dedsxc/labs/commit/0c718c9c840f38ba3601b5789042f38b90e698f2))
+
 ## [3.2.3](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.2.2...cnpg-cluster-3.2.3) (2025-12-26)
 
 
