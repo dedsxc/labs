@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Need a fix version https://cloudnative-pg.io/documentation/1.23/container_images/
+BASE_TAG=$(grep FROM containers/cnpg-citus/Dockerfile | awk -F '[:@]' '{print $2}')
+version="${BASE_TAG}"
+printf "%s" "${version}"
