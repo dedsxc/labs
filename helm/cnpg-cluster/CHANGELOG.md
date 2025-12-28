@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.3.1...cnpg-cluster-3.4.0) (2025-12-28)
+
+
+### Features
+
+* **helm:** make password refresh interval configurable ([9b711fa](https://github.com/dedsxc/labs/commit/9b711faf87914850ed3b022357356782c2e70a39))
+
 ## [3.3.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.3.0...cnpg-cluster-3.3.1) (2025-12-27)
 
 
