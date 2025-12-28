@@ -44,6 +44,7 @@ cluster:
   # -- Admin superuser
   superuserSecret: superuser-secret
   enableSuperuserAccess: true
+  refreshPasswordInterval: 0s
 
   # -- Define roles that will be created in the cluster at startup
   # roles:
@@ -115,6 +116,7 @@ cluster:
 database:
   # Auto generate password for each database
   autoGeneratePassword: true
+  refreshPasswordInterval: 0s
 
   # -- Create db on cloudnative-pg
   # list:

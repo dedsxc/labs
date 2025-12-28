@@ -61,7 +61,7 @@ kind: ExternalSecret
 metadata:
   name: {{ $secretName }}
 spec:
-  refreshInterval: "0s"
+  refreshInterval: {{ $.Values.database.refreshPasswordInterval | default "0s" }}
   target:
     template:
       type: Opaque
