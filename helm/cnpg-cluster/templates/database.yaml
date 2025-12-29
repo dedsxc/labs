@@ -82,31 +82,6 @@ spec:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: ClusterGenerator
           name: "password-cluster-generator"
-{{- else }}
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: {{ $secretName }}
-spec:
-  secretStoreRef:
-    name: vault-secret-store
-    kind: ClusterSecretStore
-  refreshInterval: 1h
-  target:
-    creationPolicy: Owner
-    template:
-      metadata:
-        labels:
-          cnpg.io/reload: "true"
-  data:
-    - secretKey: username
-      remoteRef:
-        key: {{ $secretName }}
-        property: username
-    - secretKey: password
-      remoteRef:
-        key: {{ $secretName }}
-        property: password
 {{- end }}
 ---
 {{- if and .recovery (eq .recovery.enabled true) }}
