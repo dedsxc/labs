@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.4.0...cnpg-cluster-3.5.0) (2025-12-29)
+
+
+### Features
+
+* **helm:** allow custom cluster naming in CNPG chart ([fb85902](https://github.com/dedsxc/labs/commit/fb85902d404395594e071ebd27df7050958ff717))
+
 ## [3.4.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.3.1...cnpg-cluster-3.4.0) (2025-12-28)
 
 
