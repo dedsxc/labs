@@ -1,5 +1,9 @@
 # -- Cloudnative-pg cluster configuration
 cluster:
+  # -- Name of the cluster, default to releaseName-cluster
+  clusterName: ""
+
+  # -- Replicas number
   instances: 2
   annotations: {}
   affinity: {}

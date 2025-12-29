@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: {{ printf "%s-cluster" .Release.Name | default "cloudnative-pg-cluster" }}
+  name: {{ .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
   namespace: {{ .Release.Namespace | default "cloudnative-pg" }}
   annotations: {{ .Values.cluster.annotations | toYaml | nindent 4 }}
 spec:
