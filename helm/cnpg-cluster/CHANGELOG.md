@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.5.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.5.0...cnpg-cluster-3.5.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* cluster name ([a3c7954](https://github.com/dedsxc/labs/commit/a3c7954a2c8d2bfda88a19d3eab7826e3967205d))
+* **cnpg-cluster:** make clusterName configurable across all templates ([9bbc719](https://github.com/dedsxc/labs/commit/9bbc719268e5617b483aa684e89ab17cde3d14c1))
+* **cnpg-cluster:** remove legacy ExternalSecret in favor of ClusterGenerator ([d742b0a](https://github.com/dedsxc/labs/commit/d742b0a5e565469c651082005dfd71b4fe8bd933))
+
 ## [3.5.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.4.0...cnpg-cluster-3.5.0) (2025-12-29)
 
 
