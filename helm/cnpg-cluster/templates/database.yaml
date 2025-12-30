@@ -1,3 +1,4 @@
+{{- $clusterName := .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
 {{- range .Values.database.list }}
 {{- $secretName := default .name .secretName }}
 ---
@@ -9,7 +10,7 @@ spec:
   name: {{ .name }}
   owner: {{ .owner }}
   cluster:
-    name: {{ printf "%s-%s" $.Release.Name "cluster" }}
+    name: {{ $clusterName }}
 {{- if .extensions }}
   extensions: {{- toYaml .extensions | nindent 4 }}
 {{- end }}
@@ -26,7 +27,7 @@ metadata:
   name: {{ .name }}-publisher
 spec:
   cluster:
-    name: {{ printf "%s-cluster" $.Release.Name }}
+    name: {{ $clusterName }}
   dbname: {{ .name  }}
   name: {{ .name }}_publisher
   publicationReclaimPolicy: delete
@@ -43,7 +44,7 @@ metadata:
   name: {{ .name }}-subscription
 spec:
   cluster:
-    name: {{ printf "%s-cluster" $.Release.Name }}
+    name: {{ $clusterName }}
   dbname: {{ .name }}
   name: {{ .name }}_subscription
   {{- if not .logicalReplication.subscription.externalClusterName }}
@@ -71,42 +72,17 @@ spec:
       data:
         username: {{ .owner }}
         password: '{{`{{ .password }}`}}'
-        DB_HOST: {{ printf "%s-cluster" $.Release.Name }}-rw
-        DB_HOST_RO: {{ printf "%s-cluster" $.Release.Name }}-r
+        DB_HOST: {{ $clusterName }}-rw
+        DB_HOST_RO: {{ $clusterName }}-r
         DB_DATABASE: {{ .name }}
-        DB_CONNECTION_URI: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ printf "%s-cluster" $.Release.Name }}-rw:5432/{{ .name }}'
-        DB_CONNECTION_URI_RO: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ printf "%s-cluster" $.Release.Name }}-r:5432/{{ .name }}'
+        DB_CONNECTION_URI: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ $clusterName }}-rw:5432/{{ .name }}'
+        DB_CONNECTION_URI_RO: 'postgres://{{ .owner }}:{{`{{ .password }}`}}@{{ $clusterName }}-r:5432/{{ .name }}'
   dataFrom:
     - sourceRef:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: ClusterGenerator
           name: "password-cluster-generator"
-{{- else }}
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: {{ $secretName }}
-spec:
-  secretStoreRef:
-    name: vault-secret-store
-    kind: ClusterSecretStore
-  refreshInterval: 1h
-  target:
-    creationPolicy: Owner
-    template:
-      metadata:
-        labels:
-          cnpg.io/reload: "true"
-  data:
-    - secretKey: username
-      remoteRef:
-        key: {{ $secretName }}
-        property: username
-    - secretKey: password
-      remoteRef:
-        key: {{ $secretName }}
-        property: password
 {{- end }}
 ---
 {{- if and .recovery (eq .recovery.enabled true) }}
@@ -158,7 +134,7 @@ spec:
           command: [ "sh", "-c" ]
           args:
             - |
-              export PGCOPYDB_TARGET_PGURI="postgres://$DB_USERNAME:$password@{{ printf "%s-cluster" $.Release.Name }}-rw:5432/$DB_DATABASE"
+              export PGCOPYDB_TARGET_PGURI="postgres://$DB_USERNAME:$password@{{ $clusterName }}-rw:5432/$DB_DATABASE"
               export PGCOPYDB_SOURCE_PGURI="postgres://$DB_USERNAME_LEGACY:$DB_PASSWORD_LEGACY@$DB_SOURCE_HOST:$DB_SOURCE_PORT/$DB_DATABASE_LEGACY"
               pgcopydb clone --table-jobs $TABLE_JOBS --index-jobs $INDEX_JOBS \
                 --dir /var/lib/postgresql/$DB_DATABASE-backup \

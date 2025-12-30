@@ -1,4 +1,5 @@
 {{ if .Values.cluster.externalService.enabled }}
+{{- $clusterName := .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,6 +13,6 @@ spec:
       targetPort: 5432
       protocol: TCP
   selector:
-    cnpg.io/cluster: {{ .Release.Name }}-cluster
+    cnpg.io/cluster: {{ $clusterName }}
     cnpg.io/instanceRole: {{ .Values.cluster.externalService.targetRole | default "primary" }}
 {{ end }}
