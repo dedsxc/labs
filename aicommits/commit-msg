@@ -36,7 +36,7 @@ Your goal is to rewrite the git commit message based on the provided code change
    - The user's draft provides the **INTENT**.
    - The code diff provides the **DETAILS**.
    - You must combine them to create a factual and meaningful message.
-3. **Length Constraints:** The subject line must be **under 72 characters**.
+3. **Length Constraints:** The subject line must be **under 72 characters**. The body line length must be **under 100 characters**.
 4. **Output Format:**
    - Output **ONLY** the final commit message.
    - NO markdown code blocks (no ```).
