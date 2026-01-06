@@ -61,6 +61,24 @@ cluster:
   #       name: a4-bitcoin-testnet-cnpg
   roles: []
 
+  # -- Backup configuration
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://backup
+  #     endpointURL: http://s3.minio.svc.cluster.local:9000
+  #     s3Credentials:
+  #     # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
+  #       accessKeyId:
+  #         name: s3-minio-secret
+  #         key: MINIO_ROOT_USER
+  #       secretAccessKey:
+  #         name: s3-minio-secret
+  #         key: MINIO_ROOT_PASSWORD
+  #     wal:
+  #       compression: gzip
+  #   retentionPolicy: 30d
+  backup: {}
+
   # -- Bootstrap configuration for new cluster
   # bootstrap:
   #   initdb:
@@ -153,25 +171,3 @@ database:
   #         # You must define externalClusterName in cluster.externalClusters to use subscription
   #         externalClusterName: ""
   list: []
-
-# -- Object Store configuration
-# objectStore:
-#   enabled: true
-#   name: s3-storage
-#   spec:
-#     configuration:
-#       destinationPath: s3://backup
-#       endpointURL: http://s3.minio.svc.cluster.local:9000
-#       s3Credentials:
-#       # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
-#         accessKeyId:
-#           name: s3-minio-secret
-#           key: MINIO_ROOT_USER
-#         secretAccessKey:
-#           name: s3-minio-secret
-#           key: MINIO_ROOT_PASSWORD
-#       wal:
-#         compression: gzip
-#     retentionPolicy: 30d
-objectStore:
-  enabled: false

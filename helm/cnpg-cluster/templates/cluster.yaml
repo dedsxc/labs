@@ -50,6 +50,11 @@ spec:
     {{- toYaml .Values.cluster.bootstrap | nindent 4 }}
   {{ end }}
 
+  {{- if .Values.cluster.backup }}
+  backup:
+    {{- toYaml .Values.cluster.backup | nindent 4 }}
+  {{ end }}
+  
   {{- if .Values.cluster.externalClusters }}
   externalClusters:
   {{- toYaml .Values.cluster.externalClusters | nindent 4 }}

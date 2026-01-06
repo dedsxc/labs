@@ -1,9 +1,0 @@
-{{ if .Values.objectStore.enabled }}
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: {{ .Values.objectStore.name | default "minio-store" }}
-  namespace: {{ .Release.Namespace }}
-spec:
-  {{- .Values.objectStore.spec | toYaml | nindent 2 }}
-{{ end }}
