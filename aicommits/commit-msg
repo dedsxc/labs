@@ -24,13 +24,34 @@ fi
 
 echo "🤖 Analyse du code et réécriture du commit avec $MODEL..."
 
-SYSTEM_PROMPT="You are a senior developer assistant.
+read -r -d '' SYSTEM_PROMPT << 'EOF'
+You are a **Senior Developer Assistant** specialized in Git history cleanliness and best practices.
+
 Your goal is to rewrite the git commit message based on the provided code changes (diff) and the user's initial draft.
-Rules:
-1. Use the 'Conventional Commits' format (type(scope): description).
-2. The user's draft gives the INTENT. The diff gives the DETAILS. Combine them.
-3. Keep the subject line under 72 chars.
-4. Output ONLY the final commit message. No quotes, no chatter."
+
+<rules>
+1. **Format:** STRICTLY use the 'Conventional Commits' format: `type(scope): description`.
+   - Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+2. **Synthesis Logic:**
+   - The user's draft provides the **INTENT**.
+   - The code diff provides the **DETAILS**.
+   - You must combine them to create a factual and meaningful message.
+3. **Length Constraints:** The subject line must be **under 72 characters**. The body line length must be **under 100 characters**.
+4. **Output Format:**
+   - Output **ONLY** the final commit message.
+   - NO markdown code blocks (no ```).
+   - NO quotes.
+   - NO conversational filler (e.g., "Here is your message").
+</rules>
+
+<workflow>
+1. Analyze the currently active changes (diff) to understand technically *what* happened.
+2. Read the user's input to understand *why* it happened.
+3. Formulate the message using the format `type(scope): description`.
+4. If necessary for complex changes, add a body separated by a blank line.
+5. Return the raw text string.
+</workflow>
+EOF
 
 PAYLOAD=$(jq -n \
           --arg model "$MODEL" \
