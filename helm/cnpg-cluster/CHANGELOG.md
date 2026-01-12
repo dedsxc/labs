@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.5.1...cnpg-cluster-4.0.0) (2026-01-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **helm:** `objectStore.enabled` and related fields are replaced by `scheduledBackup.*` and a new `backup` block.
+
+### Features
+
+* **helm:** rename backup config to scheduledBackup; add backup values ([468dff3](https://github.com/dedsxc/labs/commit/468dff3e410d950a1b600fda1e4bcd5d9924da8e))
+
 ## [3.5.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.5.0...cnpg-cluster-3.5.1) (2025-12-30)
 
 
