@@ -105,6 +105,9 @@ cluster:
   #       barmanObjectName: s3-storage
   plugins: []
 
+  # -- Enable backup configuration
+  backup: {}
+
   # -- Connect to an external cluster for recovery
   # https://cloudnative-pg.io/docs/1.28/recovery/
   # externalClusters:
@@ -154,6 +157,16 @@ database:
   #         externalClusterName: ""
   list: []
 
+
+# -- Scheduled Backup configuration
+scheduledBackup:
+  enabled: false
+  # -- Cron schedule format
+  schedule: "0 0 0 * * *"
+  # Method to use for backup: plugin, volumeSnapshot, barmanObjectStore
+  method: "volumeSnapshot"
+
+
 # -- Object Store configuration
 # objectStore:
 #   enabled: true
@@ -175,3 +188,4 @@ database:
 #     retentionPolicy: 30d
 objectStore:
   enabled: false
+

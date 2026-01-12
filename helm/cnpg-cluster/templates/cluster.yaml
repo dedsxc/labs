@@ -37,10 +37,12 @@ spec:
   managed:
     roles:
       {{- toYaml .Values.cluster.roles | nindent 6 }}
+  
   {{- if .Values.cluster.monitoring }}
   monitoring:
     {{- toYaml .Values.cluster.monitoring | nindent 4 }}
   {{ end }}
+  
   {{- if .Values.cluster.plugins }}
   plugins: {{ .Values.cluster.plugins | toYaml | nindent 2 }}
   {{ end }}
@@ -52,5 +54,10 @@ spec:
 
   {{- if .Values.cluster.externalClusters }}
   externalClusters:
-  {{- toYaml .Values.cluster.externalClusters | nindent 4 }}
+    {{- toYaml .Values.cluster.externalClusters | nindent 4 }}
+  {{ end }}
+
+  {{- if .Values.cluster.backup }}
+  backup:
+    {{- toYaml .Values.cluster.backup | nindent 4 }}
   {{ end }}
