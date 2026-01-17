@@ -1,19 +1,104 @@
-{{ if .Values.scheduledBackup.enabled }}
-{{- $clusterName := .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
----
+{{- range $key, $config := .Values.scheduledBackup }}
+{{ if or (and (eq $key "plugin") $config.enabled) (and (eq $key "volumeSnapshot") $config.enabled) }}
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: {{ (printf "%s-backup" $clusterName) }}
+  name: {{ printf "%s-cluster-%s-backup" $.Release.Name (lower $key) | default "cloudnative-pg-cluster-backup" }}
 spec:
   cluster:
-    name: {{ $clusterName }}
-  schedule: {{ .Values.scheduledBackup.schedule | default "0 0 0 * * *" }}
+    name: {{ printf "%s-cluster" $.Release.Name | default "cloudnative-pg-cluster" }}
+  schedule: "{{ $config.scheduledBackup | default "0 0 0 * * *" }}"
   backupOwnerReference: self
-  immediate: true
-  method: {{ .Values.scheduledBackup.method | default "plugin" }}
-  {{- if eq .Values.scheduledBackup.method "plugin" }}
+  method: {{ $key }}
+  {{- if eq $key "plugin" }}
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
   {{- end }}
+---
+{{ if eq $key "volumeSnapshot" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: volume-snapshot-deleter-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: volume-snapshot-deleter
+rules:
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: volume-snapshots-deleter-binding
+subjects:
+- kind: ServiceAccount
+  name: volume-snapshot-deleter-sa
+roleRef:
+  kind: Role
+  name: volume-snapshot-deleter
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volume-snapshot-retention-cleaner
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- if $.Values.cluster.imagePullSecrets }}
+          imagePullSecrets:
+            {{- range $.Values.cluster.imagePullSecrets }}
+            - name: {{ .name }}
+            {{- end }}
+          {{- end }}
+          serviceAccountName: volume-snapshot-deleter-sa
+          containers:
+          - name: volume-snapshot-retention-cleaner
+            image: {{ $config.retentionImage | default "debian:latest" }}
+            env:
+              - name: RETENTION_DAYS
+                value: "{{ $config.retentionDays | default "7" }}"
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
+                CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                API_URL="https://kubernetes.default.svc/apis/snapshot.storage.k8s.io/v1/namespaces/$NAMESPACE/volumesnapshots"
+                RETENTION_DAYS=${RETENTION_DAYS}
+
+                # Calculate the threshold date in seconds
+                THRESHOLD_DATE=$(date -d "@$(($(date +%s) - (RETENTION_DAYS * 86400)))" +%s)
+
+                SNAPSHOTS_TO_DELETE=$(curl -s --cacert $CACERT -H "Authorization: Bearer $TOKEN" $API_URL \
+                  | jq -r --argjson limit "$THRESHOLD_DATE" '
+                    .items[] 
+                  | select((.metadata.creationTimestamp | fromdateiso8601) < $limit) 
+                  | .metadata.name')
+                
+                echo "Snapshots to delete:"
+                echo "$SNAPSHOTS_TO_DELETE"
+
+                if [ -z "$SNAPSHOTS_TO_DELETE" ]; then
+                  echo "[+] No snapshots to delete."
+                else
+                  for SNAPSHOT in $SNAPSHOTS_TO_DELETE; do
+                    echo "[-] $SNAPSHOT ..."
+                    curl -s --cacert $CACERT \
+                       -X DELETE \
+                       -H "Authorization: Bearer $TOKEN" \
+                       "$API_URL/$SNAPSHOT" \
+                       -o /dev/null && echo "Success." || echo "Failed for $SNAPSHOT"
+                  done
+                fi
+          restartPolicy: OnFailure
+{{ end }}
+{{ end }}
 {{ end }}
