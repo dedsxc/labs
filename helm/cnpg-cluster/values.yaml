@@ -160,11 +160,15 @@ database:
 
 # -- Scheduled Backup configuration
 scheduledBackup:
-  enabled: false
-  # -- Cron schedule format
-  schedule: "0 0 0 * * *"
-  # Method to use for backup: plugin, volumeSnapshot, barmanObjectStore
-  method: "volumeSnapshot"
+  plugin:
+    enabled: false
+    scheduledBackup: "0 0 0 * * *" # Every day at midnight
+    name: barman-cloud.cloudnative-pg.io
+  volumeSnapshot:
+    enabled: false
+    scheduledBackup: "0 0 0 * * *" # Every day at midnight
+    retentionDays: 7
+    retentionImage: "debian:trixie-slim" # Must contain curl and jq
 
 
 # -- Object Store configuration

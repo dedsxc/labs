@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.0.0...cnpg-cluster-4.1.0) (2026-01-17)
+
+
+### Features
+
+* **helm:** add volume snapshot support and retention cleaner ([#197](https://github.com/dedsxc/labs/issues/197)) ([fc52cb8](https://github.com/dedsxc/labs/commit/fc52cb8cff860c275de620080ee0fbe7cdaf0e05))
+
 ## [4.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-3.5.1...cnpg-cluster-4.0.0) (2026-01-12)
 
 
