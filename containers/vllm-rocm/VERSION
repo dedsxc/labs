@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+BASE_TAG=$(grep FROM containers/vllm-rocm/Dockerfile | awk -F '[:@]' '{print $2}')
+version="${BASE_TAG}"
+printf "%s" "${version}"
