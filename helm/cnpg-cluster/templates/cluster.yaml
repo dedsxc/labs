@@ -26,8 +26,10 @@ spec:
   walStorage:
     size: {{ .Values.cluster.walStorage.size | default "4Gi" }}
     storageClass: {{ .Values.cluster.walStorage.storageClass | default "openebs-hostpath" }}
+  {{- if .Values.cluster.resources }}
   resources:
     {{- toYaml .Values.cluster.resources | nindent 4 }}
+  {{- end }}
   superuserSecret:
     name: {{ .Values.cluster.superuserSecret | default "superuser-secret" }}
   enablePDB: true

@@ -4,7 +4,7 @@ name: "Charts: Test deployment"
 on:
   pull_request:
     paths:
-      - 'examples/helm/**'
+      - 'helm/**'
 
 jobs:
   get-modified-charts:
