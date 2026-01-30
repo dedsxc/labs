@@ -1,4 +1,4 @@
-FROM ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:f07bca76a055449ec930cb42af1973fdd3f3c58d2dddd121f2ef2f74974b8877
+FROM ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:441cda9cd1b2ba50d45245f6498ec39a0ad97a7532e9eb159004a1d1cc856749
 
 USER root 
 
