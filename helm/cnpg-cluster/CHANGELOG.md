@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.0...cnpg-cluster-4.1.1) (2026-01-30)
+
+
+### Bug Fixes
+
+* **helm:** wrap cluster resources in conditional check ([#209](https://github.com/dedsxc/labs/issues/209)) ([298fc37](https://github.com/dedsxc/labs/commit/298fc374cfb61af7dd9d4267281cc6c93a064d1e))
+
 ## [4.1.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.0.0...cnpg-cluster-4.1.0) (2026-01-17)
 
 
