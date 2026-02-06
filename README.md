@@ -1,5 +1,12 @@
 # 🪐 Home-labs
 
+> Personal Kubernetes lab environment to deploy cloud-native technologies, and infrastructure automation
+
+[![Release Containers](https://github.com/dedsxc/labs/actions/workflows/release-containers.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/release-containers.yaml)
+[![Release Helm Charts](https://github.com/dedsxc/labs/actions/workflows/release-helm-charts.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/release-helm-charts.yaml)
+[![Docker Build Test](https://github.com/dedsxc/labs/actions/workflows/docker-build-test.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/docker-build-test.yaml)
+[![Renovate](https://github.com/dedsxc/labs/actions/workflows/renovate.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/renovate.yaml)
+
 <div align="center">
 
 <img src=".github/rocket.png" alt="Neon Rocket Launch Control" width="200"/>
@@ -31,3 +38,6 @@
 - 🟢 Online → glowing cyan  
 - 🔴 Offline → warning red  
 
+---
+
+**Maintained by**: Kien Nguyen  
