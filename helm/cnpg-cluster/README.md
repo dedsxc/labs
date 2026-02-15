@@ -1,52 +1,216 @@
-# cloudnative-pg
+# CNPG Cluster Helm Chart
 
-CloudNativePG is an open source operator designed to manage PostgreSQL workloads on any supported Kubernetes cluster running in private, public, hybrid, or multi-cloud environments.
+Helm chart to deploy PostgreSQL clusters using CloudNativePG.
 
-More info [github](https://github.com/cloudnative-pg/charts)
+## Prerequisites
+
+- Kubernetes 1.28+
+- Helm 3.x
+- CloudNativePG operator installed in the cluster
+- Configured StorageClass (default: `openebs-hostpath`)
+
+## Quick Start
 
 ```bash
-# Check status
-kubectl cnpg status cloudnative-pg-cluster -n cloudnative-pg
-
-# Promote instance to be primary
-kubectl cnpg promote cloudnative-pg-cluster cloudnative-pg-cluster-<id> -n cloudnative-pg
+helm install postgres ./cnpg-cluster -n postgres --create-namespace
 ```
 
-# Barman cloud plugin
+## Configuration
 
-## Installation
+### Cluster
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `cluster.instances` | Number of PostgreSQL replicas | `2` |
+| `cluster.image.name` | PostgreSQL image | `ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:...` |
+| `cluster.storage.size` | Data volume size | `8Gi` |
+| `cluster.storage.storageClass` | StorageClass for data | `openebs-hostpath` |
+| `cluster.walStorage.size` | WAL volume size | `1Gi` |
+| `cluster.walStorage.storageClass` | StorageClass for WAL | `openebs-hostpath` |
+| `cluster.superuserSecret` | Superuser secret name | `superuser-secret` |
+| `cluster.postgresql.parameters` | PostgreSQL configuration | `max_connections: 300` |
+| `cluster.resources` | CPU/memory limits | `{}` |
+
+### Databases
+
+Automatic database creation with credential generation:
+
+```yaml
+database:
+  autoGeneratePassword: true
+  list:
+    - name: myapp
+      owner: myapp_user
+      extensions:
+        - name: pg_stat_statements
+          ensure: present
+```
+
+### Backup
+
+#### Plugin barman-cloud (S3-compatible)
+
+```yaml
+objectStore:
+  enabled: true
+  name: s3-storage
+  spec:
+    configuration:
+      destinationPath: s3://postgres-backups
+      endpointURL: https://s3.amazonaws.com
+      s3Credentials:
+        accessKeyId:
+          name: s3-credentials
+          key: AWS_ACCESS_KEY_ID
+        secretAccessKey:
+          name: s3-credentials
+          key: AWS_SECRET_ACCESS_KEY
+    retentionPolicy: 30d
+
+scheduledBackup:
+  plugin:
+    enabled: true
+    scheduledBackup: "0 2 * * *"  # 02:00 daily
+    name: barman-cloud.cloudnative-pg.io
+
+cluster:
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: s3-storage
+```
+
+#### Volume Snapshots
+
+```yaml
+scheduledBackup:
+  volumeSnapshot:
+    enabled: true
+    scheduledBackup: "0 3 * * *"
+    retentionDays: 7
+```
+
+### Recovery
+
+Restore from S3 backup:
+
+```yaml
+cluster:
+  bootstrap:
+    recovery:
+      source: origin
+  externalClusters:
+    - name: origin
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: s3-storage
+          serverName: previous-cluster
+```
+
+### High Availability
+
+```yaml
+cluster:
+  instances: 3
+  externalService:
+    enabled: true
+    targetInstanceRole: primary
+```
+
+### Monitoring
+
+Expose Prometheus metrics:
+
+```yaml
+cluster:
+  podMonitor:
+    enabled: true
+```
+
+## Operations
+
+### Cluster status
+
+```bash
+kubectl cnpg status <cluster-name> -n <namespace>
+```
+
+### Manual promotion
+
+```bash
+kubectl cnpg promote <cluster-name> <instance-name> -n <namespace>
+```
+
+### Connection
+
+```bash
+# Primary
+kubectl port-forward svc/<cluster-name>-rw 5432:5432 -n <namespace>
+
+# Read replicas
+kubectl port-forward svc/<cluster-name>-r 5432:5432 -n <namespace>
+```
+
+### Retrieve credentials
+
+```bash
+kubectl get secret <cluster-name>-superuser -n <namespace> -o jsonpath='{.data.password}' | base64 -d
+```
+
+## Barman Cloud Plugin
+
+Plugin installation:
 
 ```bash
 kubectl create ns cnpg-system
 kubectl apply -f https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.6.0/manifest.yaml
+```
 
-# Install on specific namespace
+Install in specific namespace (macOS):
+
+```bash
 curl -L -o manifest.yaml https://github.com/cloudnative-pg/plugin-barman-cloud/releases/download/v0.6.0/manifest.yaml
-sed -i 's/namespace: cnpg-system/namespace: myNamespace/g' manifest.yaml
-# For MacOS
-# sed -ie 's/namespace: cnpg-system/namespace: myNamespace/g' manifest.yaml
+sed -i '' 's/namespace: cnpg-system/namespace: my-namespace/g' manifest.yaml
 kubectl apply -f manifest.yaml
 ```
 
-After configuring barman cloud, the cluster of cnpg pod should be restarted to run barman cloud as sidecar container
+## PostgreSQL Images
 
+Format: `MM.mm-TS-TYPE-OS`
 
-## Postgresql image version
+- `MM.mm`: PostgreSQL version (e.g. `18.1`)
+- `TS`: Build timestamp
+- `TYPE`: `standard` or `minimal`
+- `OS`: Distribution (e.g. `trixie`)
 
-Postgresql version image are available in the following link: https://github.com/cloudnative-pg/postgres-containers/blob/main/README.md
-Each image is identified by its digest and a main tag of the form:
+Catalog: https://github.com/cloudnative-pg/postgres-containers
+
+## Deployed Architecture
 
 ```
-MM.mm-TS-TYPE-OS
+┌─────────────────────────────────────┐
+│         CNPG Cluster                │
+├─────────────────────────────────────┤
+│  Pod-1 (Primary)   │  Pod-2 (Replica)│
+│  - PostgreSQL      │  - PostgreSQL   │
+│  - Barman (opt)    │  - Barman       │
+├─────────────────────────────────────┤
+│  Services                           │
+│  - <name>-rw  → Primary             │
+│  - <name>-r   → Read replicas       │
+│  - <name>-ro  → All instances       │
+├─────────────────────────────────────┤
+│  Volumes                            │
+│  - PVC data (storage.size)          │
+│  - PVC WAL (walStorage.size)        │
+└─────────────────────────────────────┘
 ```
 
-where:
+## License
 
-- `MM` is the PostgreSQL major version (e.g. `16`)
-- `mm` is the PostgreSQL minor version (e.g. `10`)
-- `TS` is the build timestamp with minute precision (e.g. `202509090953`)
-- `TYPE` is image type (e.g. `standard` or `minimal`)
-- `OS` is the underlying distribution (e.g. `trixie`)
+See [CloudNativePG](https://github.com/cloudnative-pg/cloudnative-pg) project
 
 For example: `16.10-202509090953-minimal-trixie` or `16.10-standard-trixie` or `16-standard-trixie`
 

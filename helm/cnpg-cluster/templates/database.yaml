@@ -1,5 +1,9 @@
 {{- $clusterName := .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
 {{- range .Values.database.list }}
+{{- $autoGen := $.Values.database.autoGeneratePassword }}
+{{- if hasKey . "autoGeneratePassword" }}
+  {{- $autoGen = .autoGeneratePassword }}
+{{- end }}
 {{- $secretName := default .name .secretName }}
 ---
 apiVersion: postgresql.cnpg.io/v1
@@ -17,7 +21,6 @@ spec:
 {{- if .schemas }}
   schemas: {{- toYaml .schemas | nindent 4 }}
 {{- end }}
-
 ---
 
 {{- if and .logicalReplication .logicalReplication.publication (default false .logicalReplication.publication.enabled) }}
@@ -36,7 +39,9 @@ spec:
   {{- end }}
   target:
     {{- toYaml .logicalReplication.publication.target | nindent 4 }}
+---
 {{- end }}
+
 {{- if and .logicalReplication .logicalReplication.subscription (default false .logicalReplication.subscription.enabled) }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Subscription
@@ -53,10 +58,10 @@ spec:
   externalClusterName: {{ .logicalReplication.subscription.externalClusterName }}
   publicationName: {{ .name }}_publisher
   subscriptionReclaimPolicy: delete
-{{- end }}
 ---
+{{- end }}
 
-{{- if $.Values.database.autoGeneratePassword}}
+{{- if $autoGen }}
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -83,8 +88,9 @@ spec:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: ClusterGenerator
           name: "password-cluster-generator"
-{{- end }}
 ---
+{{- end }}
+
 {{- if and .recovery (eq .recovery.enabled true) }}
 apiVersion: batch/v1
 kind: Job
