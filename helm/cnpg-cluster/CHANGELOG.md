@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.1.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.1...cnpg-cluster-4.1.2) (2026-02-15)
+
+
+### Bug Fixes
+
+* add condition for autoGeneratePassword per db ([#223](https://github.com/dedsxc/labs/issues/223)) ([325243b](https://github.com/dedsxc/labs/commit/325243b2ca1259545ef6855ceac3a4d57f4c5429))
+
 ## [4.1.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.0...cnpg-cluster-4.1.1) (2026-01-30)
 
 
