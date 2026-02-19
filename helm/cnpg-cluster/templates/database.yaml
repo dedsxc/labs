@@ -4,6 +4,10 @@
 {{- if hasKey . "autoGeneratePassword" }}
   {{- $autoGen = .autoGeneratePassword }}
 {{- end }}
+{{- $databaseReclaimPolicy := $.Values.database.databaseReclaimPolicy }}
+{{- if hasKey . "databaseReclaimPolicy" }}
+  {{- $databaseReclaimPolicy = .databaseReclaimPolicy }}
+{{- end }}
 {{- $secretName := default .name .secretName }}
 ---
 apiVersion: postgresql.cnpg.io/v1
@@ -11,6 +15,7 @@ kind: Database
 metadata:
   name: {{ printf "%s-%s-%s" .name $.Release.Name "cluster" }}
 spec:
+  databaseReclaimPolicy: {{ $databaseReclaimPolicy | default "retain" }}
   name: {{ .name }}
   owner: {{ .owner }}
   cluster:

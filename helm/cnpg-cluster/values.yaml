@@ -124,6 +124,7 @@ database:
   # Auto generate password for each database
   autoGeneratePassword: true
   refreshPasswordInterval: 0s
+  databaseReclaimPolicy: retain
 
   # -- Create db on cloudnative-pg
   # list:
