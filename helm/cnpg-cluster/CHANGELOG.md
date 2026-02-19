@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.2...cnpg-cluster-4.2.0) (2026-02-19)
+
+
+### Features
+
+* **helm:** implement configurable databaseReclaimPolicy ([#227](https://github.com/dedsxc/labs/issues/227)) ([47e0e7d](https://github.com/dedsxc/labs/commit/47e0e7d58c3eed9f0f0f758537c35be573bade96))
+
 ## [4.1.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.1...cnpg-cluster-4.1.2) (2026-02-15)
 
 
