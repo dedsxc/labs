@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Configuration
+OPENAI_URL=$(git config --global --get openai.url || echo "https://api.openai.com/v1/chat/completions")
+MODEL=$(git config --global --get openai.model || echo "gpt-4o-mini")
+OPENAI_API_KEY=$(git config --global --get openai.apiKey)
+COMMIT_MSG_FILE=$1
+MAX_DIFF_LENGTH=3000
+
+if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
+    echo "Commit message file is missing."
+    exit 0
+fi
+
+ORIGINAL_MSG=$(cat "$COMMIT_MSG_FILE")
+
+DIFF=$(git diff --cached -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)*.lock')
+if [ -z "$DIFF" ]; then
+    exit 0
+fi
+
+if [ ${#DIFF} -gt $MAX_DIFF_LENGTH ]; then
+    echo "Warning: diff too long, truncated to first $MAX_DIFF_LENGTH characters."
+    DIFF="${DIFF:0:$MAX_DIFF_LENGTH}\n...(diff truncated)"
+fi
+
+echo "Analyzing changes and rewriting commit with $MODEL..."
+
+USER_PROMPT="USER DRAFT: $ORIGINAL_MSG\n\nCODE CHANGES:\n$DIFF"
+
+PAYLOAD=$(jq -n \
+          --arg model "$MODEL" \
+          --arg user "$USER_PROMPT" \
+          '{
+            model: $model,
+            messages: [
+              { role: "user", content: $user }
+            ],
+            stream: false
+           }')
+
+CURL_HEADERS=(-H "Content-Type: application/json")
+if [ -n "$OPENAI_API_KEY" ]; then
+    CURL_HEADERS+=(-H "Authorization: Bearer $OPENAI_API_KEY")
+fi
+
+RESPONSE=$(curl -sS -X POST "$OPENAI_URL" \
+    "${CURL_HEADERS[@]}" \
+    -d "$PAYLOAD")
+
+NEW_MSG=""
+if echo "$RESPONSE" | jq -e . >/dev/null 2>&1; then
+    NEW_MSG=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+else
+    echo "Error: API response is not valid JSON. Check openai.url and API key."
+fi
+
+if [ -n "$NEW_MSG" ] && [ "$NEW_MSG" != "null" ]; then
+    echo "$NEW_MSG" > "$COMMIT_MSG_FILE"
+    echo "Commit transformed:"
+    echo "  $NEW_MSG"
+else
+    if [ -z "$ORIGINAL_MSG" ]; then
+        FALLBACK_MSG="chore: update staged changes"
+        echo "$FALLBACK_MSG" > "$COMMIT_MSG_FILE"
+        echo "Warning: AI response empty. Applied fallback commit message: $FALLBACK_MSG"
+    fi
+    echo "Error: OpenAI-compatible API returned empty response. Original message kept."
+fi
