@@ -1,82 +1,951 @@
-# CloudNativePG Cluster Helm Chart
+# cnpg-cluster
 
-## Overview
+> **RAG-optimized reference document.** This file is the authoritative source of truth for any
+> AI agent generating or reviewing `cnpg-cluster` configurations. Every schema key, type,
+> default value, constraint, behavioral rule, and generated resource is documented here.
 
-**cnpg-cluster** is a production-ready Helm chart for deploying and managing PostgreSQL clusters using [CloudNativePG](https://cloudnative-pg.io/) operator on Kubernetes. This chart provides a declarative way to create highly available PostgreSQL databases with automatic failover, point-in-time recovery, and comprehensive backup strategies.
+A production-ready Helm chart for deploying PostgreSQL clusters using the
+[CloudNativePG](https://cloudnative-pg.io/) operator on Kubernetes.
 
-**Version:** 4.2.0  
-**Type:** Application  
-**Operator Required:** CloudNativePG >= 1.28.0
+**Version:** 4.2.0 | **Type:** Application | **Operator required:** CloudNativePG >= 1.28.0
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration Guide](#configuration-guide)
-  - [Cluster Configuration](#cluster-configuration)
-  - [Database Management](#database-management)
-  - [Backup Strategies](#backup-strategies)
-  - [High Availability](#high-availability)
-  - [Monitoring](#monitoring)
-  - [Security](#security)
-- [Advanced Features](#advanced-features)
-- [Examples](#examples)
-- [Backup & Recovery](#backup--recovery)
-- [Troubleshooting](#troubleshooting)
-- [Migration Guide](#migration-guide)
-- [Best Practices](#best-practices)
+- [cnpg-cluster](#cnpg-cluster)
+  - [Table of Contents](#table-of-contents)
+  - [Architecture](#architecture)
+  - [Prerequisites and cluster operators](#prerequisites-and-cluster-operators)
+  - [What this chart generates](#what-this-chart-generates)
+  - [Quick start](#quick-start)
+  - [Schema reference](#schema-reference)
+    - [cluster](#cluster)
+      - [cluster.image vs cluster.imageCatalogRef](#clusterimage-vs-clusterimagecatalogref)
+      - [cluster.storage and cluster.walStorage](#clusterstorage-and-clusterwalstroage)
+      - [cluster.postgresql](#clusterpostgresql)
+      - [cluster.roles](#clusterroles)
+      - [cluster.bootstrap](#clusterbootstrap)
+      - [cluster.externalClusters](#clusterexternalclusters)
+      - [cluster.plugins](#clusterplugins)
+      - [cluster.backup](#clusterbackup)
+      - [cluster.monitoring and cluster.podMonitor](#clustermonitoring-and-clusterpodmonitor)
+      - [cluster.externalService](#clusterexternalservice)
+    - [database](#database)
+      - [database.list entry](#databaselist-entry)
+      - [database.list[].extensions](#databaselistextensions)
+      - [database.list[].schemas](#databaselistschemas)
+      - [database.list[].logicalReplication](#databaselistlogicalreplication)
+      - [database.list[].recovery](#databaselistrecovery)
+    - [scheduledBackup](#scheduledbackup)
+      - [scheduledBackup.plugin](#scheduledbackupplugin)
+      - [scheduledBackup.volumeSnapshot](#scheduledbackupvolumesnapshot)
+    - [objectStore](#objectstore)
+  - [Generated resources reference](#generated-resources-reference)
+  - [Service endpoints](#service-endpoints)
+  - [Secret format (auto-generated per database)](#secret-format-auto-generated-per-database)
+  - [Production-ready examples](#production-ready-examples)
+    - [Minimal single-instance cluster](#minimal-single-instance-cluster)
+    - [HA cluster with multiple databases, monitoring, and S3 backup](#ha-cluster-with-multiple-databases-monitoring-and-s3-backup)
+    - [Bootstrap from S3 backup (disaster recovery)](#bootstrap-from-s3-backup-disaster-recovery)
+    - [Database with extensions, schemas, and logical replication](#database-with-extensions-schemas-and-logical-replication)
+    - [Database migration with pgcopydb](#database-migration-with-pgcopydb)
+    - [VolumeSnapshot scheduled backup](#volumesnapshot-scheduled-backup)
+  - [Useful commands](#useful-commands)
+  - [Critical conventions and known gotchas](#critical-conventions-and-known-gotchas)
+  - [Troubleshooting](#troubleshooting)
+  - [Values reference index](#values-reference-index)
 
 ---
 
-## Features
+## Architecture
 
-### Core Capabilities
+```
+cnpg-cluster chart
+├── templates/cluster.yaml         → postgresql.cnpg.io/v1 Cluster CRD
+├── templates/database.yaml        → postgresql.cnpg.io/v1 Database CRD (1 per database.list entry)
+│                                    + external-secrets.io/v1 ExternalSecret (if autoGeneratePassword)
+│                                    + postgresql.cnpg.io/v1 Publication (if logicalReplication.publication)
+│                                    + postgresql.cnpg.io/v1 Subscription (if logicalReplication.subscription)
+│                                    + batch/v1 Job (if recovery.enabled)
+├── templates/superUserPassword.yaml → external-secrets.io/v1 ExternalSecret (superuser password)
+├── templates/backup.yaml          → postgresql.cnpg.io/v1 ScheduledBackup (plugin and/or volumeSnapshot)
+│                                    + v1 ServiceAccount / Role / RoleBinding / CronJob (retention cleaner)
+├── templates/objectStore.yaml     → barmancloud.cnpg.io/v1 ObjectStore
+├── templates/podMonitor.yaml      → monitoring.coreos.com/v1 PodMonitor
+└── templates/svc.yaml             → v1 Service (LoadBalancer, only when externalService.enabled)
+```
 
-✅ **High Availability**
-- Multi-instance PostgreSQL clusters (3+ replicas recommended)
-- Automatic failover and self-healing
-- Read-write and read-only service endpoints
-- Pod Disruption Budgets for cluster stability
-
-✅ **Comprehensive Backup**
-- Scheduled backups using Barman Cloud (S3/MinIO/GCS/Azure)
-- VolumeSnapshot-based backups for fast recovery
-- Point-in-Time Recovery (PITR)
-- WAL archiving for continuous backup
-
-✅ **Database Management**
-- Declarative database and user provisioning
-- Auto-generated credentials with External Secrets integration
-- Schema and extension management
-- Logical replication support for upgrades
-
-✅ **Enterprise Features**
-- PostgreSQL 11-18 support
-- Custom storage classes for data and WAL
-- Resource management and QoS
-- Image catalog support for version management
-- Superuser access control
-
-✅ **Observability**
-- Prometheus metrics via PodMonitor
-- Query performance monitoring
-- Connection pooling metrics
-- WAL and replication lag tracking
+**Cluster naming rule:** `cluster.clusterName` defaults to `{{ .Release.Name }}-cluster`.
+All internal Kubernetes Service names follow the CNPG convention:
+- `<clusterName>-rw` — read/write (primary)
+- `<clusterName>-r` — read-only (any replica)
+- `<clusterName>-ro` — read-only (replicas only, never primary)
 
 ---
 
-## Prerequisites
+## Prerequisites and cluster operators
 
-### Required Components
+| Component | Version | Purpose |
+|---|---|---|
+| Kubernetes | >= 1.28 | Required by CNPG operator |
+| Helm | >= 3.12 | Chart deployment |
+| CloudNativePG operator | >= 1.28.0 | Manages Cluster/Database CRDs |
+| External Secrets Operator | >= 0.10 | Auto-generates DB passwords via `ClusterGenerator` named `password-cluster-generator` |
+| Barman Cloud plugin | >= 0.5 (optional) | S3/MinIO/GCS/Azure WAL archiving and backup |
+| Prometheus Operator | any (optional) | PodMonitor scraping |
+| VolumeSnapshot CRDs | any (optional) | VolumeSnapshot-based backups |
 
-1. **Kubernetes Cluster:** >= 1.28.0
-2. **CloudNativePG Operator:** >= 1.28.0
-   ```bash
-   kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.28/releases/cnpg-1.28.0.yaml
-   ```
+> **Hard dependency:** `autoGeneratePassword: true` (the default) requires the External Secrets
+> Operator and a `ClusterGenerator` named **`password-cluster-generator`** to exist in the
+> same namespace. Without it, the chart renders but ExternalSecret objects will fail to reconcile.
+
+---
+
+## What this chart generates
+
+| Condition | Generated resource(s) |
+|---|---|
+| Always | `Cluster` (CNPG) |
+| Always | `ExternalSecret` for superuser password |
+| Per `database.list` entry | `Database` (CNPG) |
+| Per `database.list` entry where `autoGeneratePassword: true` | `ExternalSecret` (password + connection URI) |
+| Per `database.list` entry where `logicalReplication.publication.enabled: true` | `Publication` (CNPG) |
+| Per `database.list` entry where `logicalReplication.subscription.enabled: true` | `Subscription` (CNPG) |
+| Per `database.list` entry where `recovery.enabled: true` | `Job` (pgcopydb migration, PostSync ArgoCD hook) |
+| `scheduledBackup.plugin.enabled: true` | `ScheduledBackup` (barman-cloud method) |
+| `scheduledBackup.volumeSnapshot.enabled: true` | `ScheduledBackup` (volumeSnapshot method) + `ServiceAccount` + `Role` + `RoleBinding` + `CronJob` (retention cleaner) |
+| `objectStore.enabled: true` | `ObjectStore` (barmancloud.cnpg.io) |
+| `cluster.podMonitor.enabled: true` | `PodMonitor` |
+| `cluster.externalService.enabled: true` | `Service` (LoadBalancer) |
+
+---
+
+## Quick start
+
+```bash
+# Minimal install — single instance, no backup, no external service
+helm upgrade --install my-postgres . \
+  --set cluster.instances=1 \
+  --set cluster.storage.storageClass=standard \
+  --set cluster.walStorage.storageClass=standard \
+  --namespace postgresql --create-namespace
+
+# With a values file (recommended)
+helm upgrade --install my-postgres . -f values-prod.yaml -n postgresql --create-namespace
+
+# Dry-run to inspect all generated manifests
+helm template my-postgres . -f values-prod.yaml -n postgresql
+```
+
+---
+
+## Schema reference
+
+### cluster
+
+```yaml
+cluster:
+  clusterName: ""              # string — default: "{{ .Release.Name }}-cluster"
+  instances: 2                 # int — number of PostgreSQL instances (1=single, 2+=HA)
+  annotations: {}              # map[string]string — on the Cluster resource
+  affinity: {}                 # map — Kubernetes affinity for cluster pods
+  imagePullSecrets: []         # list[{name: string}] — registry pull secrets
+                               #   e.g. [{name: private-registries}]
+
+  # Image — choose ONE of imageCatalogRef OR image.name (see below)
+  imageCatalogRef: {}          # map — reference to a ClusterImageCatalog CRD
+  image:
+    name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:...
+                               # string — full image reference (repository:tag@digest)
+    pullPolicy: IfNotPresent   # Always | IfNotPresent | Never
+
+  storage:
+    storageClass: openebs-hostpath   # string — storage class for data PVC
+    size: 8Gi                         # string — data PVC size
+  walStorage:
+    storageClass: openebs-hostpath   # string — storage class for WAL PVC
+    size: 1Gi                         # string — WAL PVC size (recommended: 3–5× max_wal_size)
+
+  resources: {}                # map — standard Kubernetes resources (requests/limits)
+
+  superuserSecret: superuser-secret   # string — name of the ExternalSecret/Secret for postgres superuser
+  enableSuperuserAccess: true         # bool — grants superuser access to the postgres user
+  refreshPasswordInterval: 0s         # string — ESO refresh interval for superuser secret ("0s" = refresh once)
+
+  roles: []                    # list — managed roles (see cluster.roles below)
+  bootstrap: {}                # map — bootstrap method (initdb or recovery)
+  externalClusters: []         # list — external clusters for recovery or replication
+  plugins: []                  # list — CNPG plugins (e.g. barman-cloud)
+  backup: {}                   # map — backup configuration (barmanObjectStore, volumeSnapshot, etc.)
+  monitoring: {}               # map — CNPG monitoring configuration
+  podMonitor:
+    enabled: false             # bool — creates a PodMonitor for Prometheus Operator
+
+  externalService:
+    enabled: false             # bool — creates a LoadBalancer Service
+    targetInstanceRole: primary  # primary | replica
+```
+
+#### cluster.image vs cluster.imageCatalogRef
+
+Use **`imageCatalogRef`** to reference a cluster-level `ClusterImageCatalog` CRD (recommended for
+managing upgrades centrally). Use **`image.name`** for a direct image pin.
+
+```yaml
+# Option A — ImageCatalog (recommended for version management)
+cluster:
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-standard-trixie
+    major: 18
+
+# Option B — Direct image pin
+cluster:
+  image:
+    name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:d393376fb67a2df53bb09acae89b39b2742b77519b4bc59f337ca9dfb7455cb1
+```
+
+> **Rule:** If `imageCatalogRef.name` is set and non-empty, `imageCatalogRef` takes precedence
+> and `image.name` is ignored.
+
+#### cluster.storage and cluster.walStorage
+
+```yaml
+cluster:
+  storage:
+    storageClass: openebs-lvmpv   # Use a RWO storage class
+    size: 32Gi
+  walStorage:
+    storageClass: openebs-lvmpv
+    size: 27Gi                    # Recommended: 3–5× max_wal_size (default max_wal_size=1GB → 3–5Gi)
+```
+
+> **Rule:** WAL and data storage use separate PVCs. They can use different storage classes.
+> Both PVCs are created and managed by the CNPG operator; they are NOT deleted on `helm uninstall`.
+
+#### cluster.postgresql
+
+Full pass-through to the CNPG `Cluster.spec.postgresql` field.
+
+```yaml
+cluster:
+  postgresql:
+    parameters:
+      max_connections: "300"
+      min_wal_size: "2GB"
+      max_wal_size: "8GB"
+      # pg_stat_monitor tuning
+      pg_stat_monitor.pgsm_query_max_len: "4096"
+      pg_stat_monitor.pgsm_normalized_query: "0"
+      pg_stat_monitor.pgsm_enable_query_plan: "on"
+      # pg_stat_statements tuning
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: "all"
+      pg_stat_statements.track_utility: "off"
+    shared_preload_libraries:
+      - pg_stat_statements
+      - pg_stat_monitor
+```
+
+> **Rule:** All values under `parameters` must be **strings** (even numeric values like `"300"`).
+
+#### cluster.roles
+
+Managed roles are created and kept in sync by the CNPG operator.
+
+```yaml
+cluster:
+  roles:
+    - name: myapp
+      ensure: present          # present | absent
+      superuser: false
+      login: true
+      createdb: true
+      inherit: true
+      replication: false
+      connectionLimit: -1      # int (-1 = unlimited)
+      inRoles:                 # list[string] — PostgreSQL roles to inherit from
+        - pg_read_all_data
+      passwordSecret:
+        name: myapp-cnpg       # name of the Kubernetes Secret containing the password
+```
+
+#### cluster.bootstrap
+
+**Fresh cluster (initdb):**
+
+```yaml
+cluster:
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      dataChecksums: true
+      encoding: UTF8
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+```
+
+**Restore from S3 backup (recovery):**
+
+```yaml
+cluster:
+  bootstrap:
+    recovery:
+      source: postgresql-cluster   # must match a name in cluster.externalClusters
+
+  externalClusters:
+    - name: postgresql-cluster
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        enabled: true
+        isWALArchiver: false
+        parameters:
+          barmanObjectName: minio-store   # name of the ObjectStore resource
+          serverName: postgresql-cluster  # name of the source cluster in the backup
+```
+
+#### cluster.externalClusters
+
+Used for recovery and logical replication sources.
+
+```yaml
+cluster:
+  externalClusters:
+    - name: origin-cluster
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        enabled: true
+        isWALArchiver: false
+        parameters:
+          barmanObjectName: s3-storage
+          serverName: origin-cluster
+```
+
+#### cluster.plugins
+
+```yaml
+cluster:
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true          # enables continuous WAL archiving
+      parameters:
+        barmanObjectName: s3-storage   # name of the ObjectStore resource
+```
+
+#### cluster.backup
+
+Full pass-through to `Cluster.spec.backup`. Used with barman-cloud plugin for PITR.
+
+```yaml
+cluster:
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      endpointURL: http://s3.minio.svc.cluster.local:9000
+      destinationPath: s3://backups/postgresql
+      s3Credentials:
+        accessKeyId:
+          name: minio-secret
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: minio-secret
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+```
+
+#### cluster.monitoring and cluster.podMonitor
+
+```yaml
+cluster:
+  monitoring: {}          # map — passed directly to Cluster.spec.monitoring
+
+  podMonitor:
+    enabled: false        # bool — creates a monitoring.coreos.com/v1 PodMonitor
+                          # The PodMonitor targets pods with label cnpg.io/cluster=<clusterName>
+                          # and scrapes the `metrics` port.
+```
+
+#### cluster.externalService
+
+Creates a `LoadBalancer` Service pointing to the primary (or replica) instance.
+
+```yaml
+cluster:
+  externalService:
+    enabled: true
+    targetInstanceRole: primary   # primary | replica
+# Generated: Service/<release-name>-lb (type: LoadBalancer, port: 5432)
+# Selector: cnpg.io/cluster=<clusterName>, cnpg.io/instanceRole=primary
+```
+
+---
+
+### database
+
+```yaml
+database:
+  autoGeneratePassword: true        # bool — generates an ExternalSecret per DB using the
+                                    # ClusterGenerator named "password-cluster-generator"
+  refreshPasswordInterval: 0s       # string — ESO refresh interval ("0s" = once, "1h" = hourly)
+  databaseReclaimPolicy: retain     # retain | delete — what happens to the DB when the
+                                    # Database CRD is deleted
+  list: []                          # list — database entries (see below)
+```
+
+#### database.list entry
+
+```yaml
+database:
+  list:
+    - name: myapp                   # string — REQUIRED — PostgreSQL database name
+      owner: myapp_user             # string — REQUIRED — database owner role
+      secretName: myapp-cnpg        # string — defaults to name; name of the generated Secret
+      autoGeneratePassword:         # bool — per-database override of database.autoGeneratePassword
+      databaseReclaimPolicy:        # retain | delete — per-database override
+      extensions: []                # list — see below
+      schemas: []                   # list — see below
+      logicalReplication: {}        # map — see below
+      recovery: {}                  # map — see below
+```
+
+#### database.list[].extensions
+
+```yaml
+      extensions:
+        - name: pg_stat_monitor     # string — extension name
+          ensure: present           # present | absent
+        - name: postgis
+          ensure: present
+        - name: vector
+          ensure: present
+```
+
+#### database.list[].schemas
+
+```yaml
+      schemas:
+        - name: analytics           # string — schema name
+          owner: myapp_user         # string — schema owner
+          ensure: present           # present | absent
+```
+
+#### database.list[].logicalReplication
+
+Used for zero-downtime major version upgrades (publish on old cluster, subscribe on new).
+**Mutually exclusive:** enable either `publication` or `subscription`, not both for the same database.
+
+```yaml
+      logicalReplication:
+        publication:
+          enabled: false
+          target:
+            # allTables: true
+            objects:
+              - tablesInSchema: public
+        subscription:
+          enabled: false
+          externalClusterName: origin-cluster   # must match a cluster.externalClusters[].name
+                                                # REQUIRED when subscription.enabled=true
+```
+
+> **Rule:** When `subscription.enabled: true`, `externalClusterName` is **required** — the chart
+> will `fail` at render time if it is missing.
+
+#### database.list[].recovery
+
+Triggers a one-shot `pgcopydb clone` Job (ArgoCD PostSync hook) to migrate data from a source
+PostgreSQL instance. Requires `pgcopydb` in the container image.
+
+```yaml
+      recovery:
+        enabled: false
+        imageName: ghcr.io/cloudnative-pg/postgresql:16.2-16   # image with pgcopydb installed
+        dbSourceHost: old-postgres.example.com                  # string — REQUIRED
+        dbSourcePort: "5432"                                     # string — default "5432"
+        dbSourceSecretName: old-db-secret                        # string — REQUIRED
+                                                                 # Secret must contain DB_USERNAME, DB_PASSWORD, DB_DATABASE
+        tableJobs: "48"                                          # string — pgcopydb --table-jobs
+        indexJobs: "16"                                          # string — pgcopydb --index-jobs
+```
+
+> **Result:** Creates a `batch/v1 Job` with `restartPolicy: Never` and `backoffLimit: 1`.
+> The job clones the source DB into the target without roles, owners, ACLs, comments, or extensions
+> (`--no-role-passwords --no-owner --no-acl --no-comments --skip-extensions --drop-if-exists`).
+> The ArgoCD annotation `argocd.argoproj.io/hook: PostSync` ensures it runs after all resources sync.
+
+---
+
+### scheduledBackup
+
+#### scheduledBackup.plugin
+
+Requires the barman-cloud CNPG plugin installed in the cluster.
+
+```yaml
+scheduledBackup:
+  plugin:
+    enabled: false
+    scheduledBackup: "0 0 0 * * *"           # string — cron expression (6 fields: sec min hour dom mon dow)
+    name: barman-cloud.cloudnative-pg.io      # string — plugin name
+# Generated: ScheduledBackup/<release-name>-cluster-plugin-backup
+# spec.method: plugin | spec.pluginConfiguration.name: barman-cloud.cloudnative-pg.io
+```
+
+#### scheduledBackup.volumeSnapshot
+
+Requires VolumeSnapshot CRDs and a CSI driver that supports snapshots.
+
+```yaml
+scheduledBackup:
+  volumeSnapshot:
+    enabled: false
+    scheduledBackup: "0 0 0 * * *"           # string — cron expression (6 fields)
+    retentionDays: 7                          # int — snapshots older than N days are deleted
+    retentionImage: "debian:trixie-slim"      # string — image used by the retention cleaner CronJob
+                                              # MUST contain curl and jq
+# Generated:
+#   ScheduledBackup/<release-name>-cluster-volumesnapshot-backup (method: volumeSnapshot)
+#   ServiceAccount/volume-snapshot-deleter-sa
+#   Role/volume-snapshot-deleter (verbs: get/list/watch/delete on volumesnapshots)
+#   RoleBinding/volume-snapshots-deleter-binding
+#   CronJob/volume-snapshot-retention-cleaner (runs daily at midnight)
+```
+
+---
+
+### objectStore
+
+Creates a `barmancloud.cnpg.io/v1 ObjectStore` resource. Required when using the barman-cloud
+plugin for WAL archiving or backup.
+
+```yaml
+objectStore:
+  enabled: false
+  name: s3-storage                  # string — name of the ObjectStore resource
+  spec:
+    configuration:
+      destinationPath: s3://backup  # string — S3 path
+      endpointURL: http://s3.minio.svc.cluster.local:9000   # string — S3-compatible endpoint
+      s3Credentials:
+        accessKeyId:
+          name: s3-minio-secret     # Secret name containing the key
+          key: MINIO_ROOT_USER      # Key name in the Secret (must be ACCESS_KEY_ID or MINIO_ROOT_USER)
+        secretAccessKey:
+          name: s3-minio-secret
+          key: MINIO_ROOT_PASSWORD  # Key name (must be ACCESS_SECRET_KEY or MINIO_ROOT_PASSWORD)
+      wal:
+        compression: gzip           # none | gzip | bzip2 | snappy
+    retentionPolicy: 30d            # string — backup retention duration
+```
+
+---
+
+## Generated resources reference
+
+### Service endpoints
+
+The CNPG operator automatically creates the following Services (not managed by this chart):
+
+| Service name | Type | Target | Use |
+|---|---|---|---|
+| `<clusterName>-rw` | ClusterIP | Primary instance | Read-write connections |
+| `<clusterName>-r` | ClusterIP | Any instance | Read-only load-balanced |
+| `<clusterName>-ro` | ClusterIP | Replica instances only | Read-only, never primary |
+| `<release-name>-lb` | LoadBalancer | Configurable | External access (optional) |
+
+### Secret format (auto-generated per database)
+
+When `database.autoGeneratePassword: true`, an `ExternalSecret` is created per database entry.
+The resulting Kubernetes `Secret` contains:
+
+| Key | Value |
+|---|---|
+| `username` | value of `database.list[].owner` |
+| `password` | auto-generated password from `ClusterGenerator` |
+| `DB_HOST` | `<clusterName>-rw` |
+| `DB_HOST_RO` | `<clusterName>-r` |
+| `DB_DATABASE` | value of `database.list[].name` |
+| `DB_CONNECTION_URI` | `postgres://<owner>:<password>@<clusterName>-rw:5432/<name>` |
+| `DB_CONNECTION_URI_RO` | `postgres://<owner>:<password>@<clusterName>-r:5432/<name>` |
+
+The generated Secret also carries label `cnpg.io/reload: "true"` so the CNPG operator
+hot-reloads credentials without a pod restart.
+
+---
+
+## Production-ready examples
+
+### Minimal single-instance cluster
+
+```yaml
+cluster:
+  instances: 1
+  image:
+    name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:d393376fb67a2df53bb09acae89b39b2742b77519b4bc59f337ca9dfb7455cb1
+  storage:
+    storageClass: standard
+    size: 10Gi
+  walStorage:
+    storageClass: standard
+    size: 3Gi
+  superuserSecret: superuser-secret
+  enableSuperuserAccess: true
+  postgresql:
+    parameters:
+      max_connections: "100"
+
+database:
+  autoGeneratePassword: true
+  list:
+    - name: myapp
+      owner: myapp
+      secretName: myapp-cnpg
+```
+
+---
+
+### HA cluster with multiple databases, monitoring, and S3 backup
+
+```yaml
+cluster:
+  instances: 3
+
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-standard-trixie
+    major: 18
+
+  imagePullSecrets:
+    - name: private-registries
+
+  storage:
+    storageClass: openebs-lvmpv
+    size: 32Gi
+  walStorage:
+    storageClass: openebs-lvmpv
+    size: 27Gi
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+
+  superuserSecret: superuser-postgres
+  enableSuperuserAccess: true
+  refreshPasswordInterval: 0s
+
+  postgresql:
+    parameters:
+      max_connections: "300"
+      min_wal_size: "2GB"
+      max_wal_size: "8GB"
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: "all"
+      pg_stat_statements.track_utility: "off"
+    shared_preload_libraries:
+      - pg_stat_statements
+      - pg_stat_monitor
+
+  roles:
+    - name: prometheus
+      ensure: present
+      superuser: true
+      login: true
+      createdb: false
+      inRoles:
+        - pg_monitor
+      passwordSecret:
+        name: prometheus-cnpg
+    - name: manager
+      ensure: present
+      inherit: true
+      superuser: false
+      login: true
+      createdb: false
+      connectionLimit: -1
+      inRoles:
+        - pg_read_all_data
+      passwordSecret:
+        name: manager-secret
+
+  podMonitor:
+    enabled: true
+
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: minio-store
+
+  externalService:
+    enabled: true
+    targetInstanceRole: primary
+
+database:
+  autoGeneratePassword: true
+  databaseReclaimPolicy: retain
+  list:
+    - name: authentik
+      owner: authentik
+      secretName: authentik-cnpg
+      extensions:
+        - name: pg_stat_monitor
+          ensure: present
+    - name: bitwarden
+      owner: bitwarden_user
+      secretName: bitwarden-cnpg
+      extensions:
+        - name: pg_stat_monitor
+          ensure: present
+    - name: umami
+      owner: umami
+      secretName: umami-cnpg
+
+scheduledBackup:
+  plugin:
+    enabled: true
+    scheduledBackup: "0 0 0 * * *"
+    name: barman-cloud.cloudnative-pg.io
+
+objectStore:
+  enabled: true
+  name: minio-store
+  spec:
+    configuration:
+      destinationPath: s3://postgresql-backup
+      endpointURL: http://minio.minio-distributed.svc.cluster.local:9000
+      s3Credentials:
+        accessKeyId:
+          name: minio-distributed
+          key: MINIO_ROOT_USER
+        secretAccessKey:
+          name: minio-distributed
+          key: MINIO_ROOT_PASSWORD
+      wal:
+        compression: gzip
+    retentionPolicy: 30d
+```
+
+---
+
+### Bootstrap from S3 backup (disaster recovery)
+
+```yaml
+cluster:
+  instances: 1
+
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: postgresql-standard-trixie
+    major: 18
+
+  storage:
+    storageClass: openebs-lvmpv
+    size: 32Gi
+  walStorage:
+    storageClass: openebs-lvmpv
+    size: 27Gi
+
+  superuserSecret: superuser-postgres
+
+  bootstrap:
+    recovery:
+      source: postgresql-cluster    # must match externalClusters[].name
+
+  externalClusters:
+    - name: postgresql-cluster
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        enabled: true
+        isWALArchiver: false
+        parameters:
+          barmanObjectName: minio-store      # must match objectStore.name
+          serverName: postgresql-cluster     # name of the originating cluster in the backup
+
+objectStore:
+  enabled: true
+  name: minio-store
+  spec:
+    configuration:
+      destinationPath: s3://postgresql-backup
+      endpointURL: http://minio.minio-distributed.svc.cluster.local:9000
+      s3Credentials:
+        accessKeyId:
+          name: minio-distributed
+          key: MINIO_ROOT_USER
+        secretAccessKey:
+          name: minio-distributed
+          key: MINIO_ROOT_PASSWORD
+
+database:
+  autoGeneratePassword: true
+  list:
+    - name: myapp
+      owner: myapp
+      secretName: myapp-cnpg
+```
+
+---
+
+### Database with extensions, schemas, and logical replication
+
+```yaml
+database:
+  autoGeneratePassword: true
+  list:
+    - name: analytics
+      owner: analytics_user
+      secretName: analytics-cnpg
+      extensions:
+        - name: pg_stat_monitor
+          ensure: present
+        - name: postgis
+          ensure: present
+        - name: timescaledb
+          ensure: present
+      schemas:
+        - name: raw
+          owner: analytics_user
+          ensure: present
+        - name: reporting
+          owner: analytics_user
+          ensure: present
+      logicalReplication:
+        publication:
+          enabled: true
+          target:
+            objects:
+              - tablesInSchema: public
+```
+
+---
+
+### Database migration with pgcopydb
+
+```yaml
+database:
+  autoGeneratePassword: true
+  list:
+    - name: legacy_app
+      owner: legacy_app
+      secretName: legacy-app-cnpg
+      recovery:
+        enabled: true
+        imageName: ghcr.io/cloudnative-pg/postgresql:16.2-16  # must have pgcopydb
+        dbSourceHost: old-rds.us-east-1.rds.amazonaws.com
+        dbSourcePort: "5432"
+        dbSourceSecretName: old-rds-secret   # must contain DB_USERNAME, DB_PASSWORD, DB_DATABASE
+        tableJobs: "48"
+        indexJobs: "16"
+```
+
+---
+
+### VolumeSnapshot scheduled backup
+
+```yaml
+scheduledBackup:
+  volumeSnapshot:
+    enabled: true
+    scheduledBackup: "0 0 1 * * *"    # daily at 1 AM
+    retentionDays: 7
+    retentionImage: "debian:trixie-slim"   # must contain curl and jq
+```
+
+---
+
+## Useful commands
+
+```bash
+# Install / upgrade
+helm upgrade --install my-postgres . -f values.yaml -n postgresql --create-namespace
+
+# Dry-run render (inspect all manifests before applying)
+helm template my-postgres . -f values.yaml -n postgresql
+
+# Diff current vs new (requires helm-diff plugin)
+helm diff upgrade my-postgres . -f values.yaml -n postgresql
+
+# Check cluster status
+kubectl get cluster -n postgresql
+kubectl describe cluster my-postgres-cluster -n postgresql
+
+# Check all databases
+kubectl get database -n postgresql
+
+# Check generated secrets
+kubectl get secret -n postgresql -l cnpg.io/reload=true
+
+# Force a manual backup (plugin method)
+kubectl cnpg backup my-postgres-cluster -n postgresql
+
+# Check backup status
+kubectl get scheduledbackup -n postgresql
+kubectl get backup -n postgresql
+
+# Trigger failover (promote a replica)
+kubectl cnpg promote my-postgres-cluster/<pod-name> -n postgresql
+
+# Check replication lag
+kubectl cnpg status my-postgres-cluster -n postgresql
+```
+
+---
+
+## Critical conventions and known gotchas
+
+| # | Rule | Impact if ignored |
+|---|---|---|
+| 1 | **Cluster name = `{{ .Release.Name }}-cluster` by default.** All service names (`-rw`, `-r`, `-ro`) are derived from this value. | Applications referencing the wrong hostname will fail to connect. |
+| 2 | **`autoGeneratePassword: true` requires a `ClusterGenerator` named `password-cluster-generator`** in the same namespace. | ExternalSecret objects will remain `NotReady`; databases will have no credentials. |
+| 3 | **All postgresql `parameters` values must be strings.** Even integers: `max_connections: "300"`. | Helm will silently pass an int, causing the CNPG operator to reject the config. |
+| 4 | **WAL PVC size should be 3–5× `max_wal_size`** (default `max_wal_size=1GB` → `3–5Gi`). | WAL partition fills up, causing the cluster to stop and go into `Failover`. |
+| 5 | **PVCs are NOT deleted on `helm uninstall`.** Data and WAL PVCs persist. | Manual cleanup required after decommissioning. Use `kubectl delete pvc` explicitly. |
+| 6 | **`scheduledBackup` cron uses 6 fields** (`sec min hour dom mon dow`), not standard 5-field cron. | Wrong schedule silently accepted; backups never run. |
+| 7 | **`logicalReplication.subscription.externalClusterName` is REQUIRED** when `subscription.enabled: true`. | Chart render fails with a Helm `fail` error. |
+| 8 | **`recovery.enabled: true` generates a Job with ArgoCD `PostSync` hook.** Outside ArgoCD the Job runs immediately on install. | In ArgoCD, ensure the cluster is fully up before the Job executes (PostSync order). |
+| 9 | **`enableSuperuserAccess: false` is the CNPG default;** this chart sets it to `true`. | Superuser access allows unrestricted access — disable in hardened environments. |
+| 10 | **`objectStore` and `scheduledBackup.plugin` are independent.** The ObjectStore defines WHERE to store, the plugin backup defines WHEN to trigger. Both are needed for full barman-cloud backup. | Missing ObjectStore means plugin backups will fail at runtime even if the ScheduledBackup is created. |
+| 11 | **The generated Secret uses `cnpg.io/reload: "true"` label.** The CNPG operator watches for this label to hot-reload credentials. | Removing this label causes the cluster to not pick up password rotations without a restart. |
+| 12 | **`database.databaseReclaimPolicy: retain` (default).** Database CRDs deleted via Helm do NOT drop the PostgreSQL database. | Use `delete` only if you explicitly want the CNPG operator to DROP the database on CRD deletion. |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Cluster` stuck in `Setting up primary` | Storage class not found, PVC not bound | Check `kubectl get pvc -n <ns>`, verify `storageClass` exists |
+| `ExternalSecret` stuck `SecretSyncedError` | `ClusterGenerator` `password-cluster-generator` missing | Install the ESO ClusterGenerator in the namespace |
+| Pod `ImagePullBackOff` | `imagePullSecrets` not set or secret missing | Add `cluster.imagePullSecrets: [{name: your-secret}]` |
+| Pod `OOMKilled` | Memory limit too low for the workload | Increase `cluster.resources.limits.memory`; check `max_connections` (each connection uses ~5MB) |
+| `Cluster` in `Failed` state, WAL errors | WAL PVC full | Increase `walStorage.size`; check `max_wal_size` parameter |
+| Application can't connect: `could not connect to server` | Wrong service name or port | Use `<clusterName>-rw:5432` for writes; check `DB_HOST` in the generated Secret |
+| `Database` CRD stuck `ReconciliationError` | Role `owner` does not exist in the cluster | Add the role to `cluster.roles` before creating the database |
+| `ExternalSecret` not refreshing password | `refreshPasswordInterval: 0s` | Change to `"1h"` or trigger manual sync with `kubectl annotate externalsecret ...` |
+| `ScheduledBackup` never triggers | Wrong cron format (5 fields instead of 6) | Use 6-field cron: `"0 0 0 * * *"` (sec min hour dom mon dow) |
+| `pgcopydb` Job fails | Missing `DB_USERNAME`/`DB_PASSWORD`/`DB_DATABASE` keys in source secret | Ensure `dbSourceSecretName` Secret has exactly these three keys |
+| VolumeSnapshot retention cleaner errors | `curl` or `jq` not in `retentionImage` | Use an image with both: `debian:trixie-slim` or `alpine` with curl+jq installed |
+
+---
+
+## Values reference index
+
+| Top-level key | Controls |
+|---|---|
+| `cluster` | CNPG `Cluster` CRD: instances, image, storage, WAL, PostgreSQL config, roles, bootstrap, recovery, plugins, backup, monitoring, external service |
+| `database.list` | CNPG `Database` CRD per entry + ESO `ExternalSecret` + optional `Publication`/`Subscription`/`Job` |
+| `database.autoGeneratePassword` | Whether to create an `ExternalSecret` per database (requires `ClusterGenerator`) |
+| `database.databaseReclaimPolicy` | Whether CNPG drops the database when the `Database` CRD is deleted |
+| `scheduledBackup.plugin` | CNPG `ScheduledBackup` using barman-cloud plugin |
+| `scheduledBackup.volumeSnapshot` | CNPG `ScheduledBackup` using VolumeSnapshot + retention `CronJob` |
+| `objectStore` | barmancloud `ObjectStore` CRD (S3/MinIO backend definition) |
 
 3. **Storage:**
    - StorageClass with dynamic provisioning
