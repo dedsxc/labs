@@ -4,9 +4,11 @@
 
 **Common** is a Helm library chart that provides reusable templates and functions for creating Kubernetes resources. This chart follows the library pattern and is designed to be used as a dependency in other Helm charts, significantly reducing boilerplate code and standardizing resource definitions across your applications.
 
-**Version:** 2.0.0  
-**Type:** Library  
-**Minimum Kubernetes Version:** 1.28.0
+**Type:** Library | **Minimum Kubernetes Version:** 1.28.0
+
+> **Authoritative version**: always check `Chart.yaml` — `grep '^version:' Chart.yaml`
+>
+> ⚠️ **Schema validity**: when the chart version changes, verify breaking changes in `CHANGELOG.md`. The "Single Controller" architecture (no `controllers:` wrapper) is a permanent breaking change from v1.x — this constraint applies to all versions >= 2.0.0.
 
 ## Table of Contents
 
@@ -48,7 +50,7 @@ type: application
 version: 1.0.0
 dependencies:
   - name: common
-    version: 2.0.0
+    version: "*"    # Pin to a specific version in production: grep '^version:' ../common/Chart.yaml
     repository: file://../common  # Or use an OCI registry or HTTP URL
 ```
 

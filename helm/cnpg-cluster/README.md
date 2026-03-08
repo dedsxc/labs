@@ -3,11 +3,15 @@
 > **RAG-optimized reference document.** This file is the authoritative source of truth for any
 > AI agent generating or reviewing `cnpg-cluster` configurations. Every schema key, type,
 > default value, constraint, behavioral rule, and generated resource is documented here.
+>
+> **Authoritative version**: always check `Chart.yaml` — `grep '^version:' Chart.yaml`
+>
+> ⚠️ **Schema validity**: when the chart version changes, verify breaking changes in `CHANGELOG.md` before generating new configurations.
 
 A production-ready Helm chart for deploying PostgreSQL clusters using the
 [CloudNativePG](https://cloudnative-pg.io/) operator on Kubernetes.
 
-**Version:** 4.2.0 | **Type:** Application | **Operator required:** CloudNativePG >= 1.28.0
+**Type:** Application | **Operator required:** CloudNativePG >= 1.28.0
 
 ## Table of Contents
 
