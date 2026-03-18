@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+version=$(curl -sX GET "https://api.github.com/repos/meilisearch/meilisearch/releases/latest" | jq --raw-output '.tag_name' | sed 's/^v//')
+printf "%s" "${version}"
