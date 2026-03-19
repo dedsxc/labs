@@ -18,6 +18,7 @@ spec:
   databaseReclaimPolicy: {{ $databaseReclaimPolicy | default "retain" }}
   name: {{ .name }}
   owner: {{ .owner }}
+  ensure: {{ .ensure | default "present" }}
   cluster:
     name: {{ $clusterName }}
 {{- if .extensions }}
