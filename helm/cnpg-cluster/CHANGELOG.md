@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.2.0...cnpg-cluster-4.3.0) (2026-03-19)
+
+
+### Features
+
+* **cnpg-cluster:** add ensure field to database template ([210c337](https://github.com/dedsxc/labs/commit/210c33700fd73a8ce4682b781d1a53894c9b4da2))
+
 ## [4.2.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.1.2...cnpg-cluster-4.2.0) (2026-02-19)
 
 
