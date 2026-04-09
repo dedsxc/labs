@@ -44,7 +44,7 @@ if [ -n "$OPENAI_API_KEY" ]; then
     CURL_HEADERS+=(-H "Authorization: Bearer $OPENAI_API_KEY")
 fi
 
-RESPONSE=$(curl -sS --connect-timeout 5 --max-time 10 -X POST "$OPENAI_URL" \
+RESPONSE=$(curl -sS --connect-timeout 10 --max-time 60 -X POST "$OPENAI_URL" \
     "${CURL_HEADERS[@]}" \
     -d "$PAYLOAD")
 
