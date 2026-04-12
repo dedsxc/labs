@@ -134,7 +134,7 @@ jobs:
           private-key: "${{ secrets.BOT_APP_PRIV_KEY }}"
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        uses: aquasecurity/trivy-action@f685ba721536b1ff19093eb4e1b1bf994c2bdbe2 # master
         id: trivy_scanner
         with:
           image-ref: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_REGISTRY_REPO }}/${{ matrix.container }}:pr-${{ github.event.pull_request.number }}
