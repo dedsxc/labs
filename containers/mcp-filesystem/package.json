@@ -32,7 +32,7 @@
     "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
-    "@types/diff": "^5.0.9",
+    "@types/diff": "^8.0.0",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^22",
     "@vitest/coverage-v8": "^2.1.8",
