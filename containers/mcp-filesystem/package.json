@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/diff": "^5.0.9",
     "@types/minimatch": "^5.1.2",
-    "@types/node": "^22",
+    "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^2.1.8",
     "shx": "^0.3.4",
     "typescript": "^5.8.2",
