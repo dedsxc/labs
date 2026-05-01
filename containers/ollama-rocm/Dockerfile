@@ -1,4 +1,4 @@
-FROM ollama/ollama:0.22.0@sha256:05ab093b257a54318fba39293f1640d53b507d1edec8fa6ca2d3e1817c02e53b
+FROM ollama/ollama:0.22.1@sha256:3ca37ec2b9cb6341b62554074205c616778fe98abcf9e4fc50361b79a07407ae
 
 RUN useradd --create-home ollama \
     && apt-get update && apt-get install -y --no-install-recommends curl zstd \
