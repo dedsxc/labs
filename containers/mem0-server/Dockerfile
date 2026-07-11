@@ -20,7 +20,12 @@ WORKDIR /app
 COPY --from=fetcher /tmp/version_info /tmp/version_info
 COPY --from=fetcher /tmp/mem0-src/server/. /app/
 
-RUN pip install --no-cache-dir -r requirements.txt
+# upstream requirements.txt pins bare "psycopg" (source build), which
+# needs libpq installed on the system and fails at runtime with
+# "no pq wrapper available" on this slim image. Force the prebuilt
+# binary wheel instead (same fix used in mem0's own self-host guide).
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --force-reinstall "psycopg[binary]>=3.2.8"
 
 RUN useradd --create-home --uid 10001 mem0 \
     && chown -R mem0:mem0 /app
