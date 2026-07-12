@@ -22,11 +22,13 @@ so they cannot be injected at runtime. They are baked via build args:
 
 | Build arg | Default |
 | --- | --- |
-| `NEXT_PUBLIC_BACKEND_API_URL` | `https://cognee.kien.cc/api` |
+| `NEXT_PUBLIC_BACKEND_API_URL` | `/api` (same-origin relative path) |
 | `NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT` | `false` |
 
 The `dedsxc/labs` release workflow passes no build args, so the defaults above
-are what ship in the published image.
+are what ship in the published image. The default is a **same-origin relative
+path** so no environment-specific hostname is baked into this public image;
+route `/api` to the cognee backend at the edge (ingress/gateway).
 
 ## Runtime
 

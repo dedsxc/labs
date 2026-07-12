@@ -6,8 +6,9 @@
 ## `next build`, and serve with `next start`.
 ##
 ## NEXT_PUBLIC_* vars are inlined into the browser bundle at BUILD time, so the
-## backend API URL must be baked here (not injected at runtime). Override the
-## default with `--build-arg NEXT_PUBLIC_BACKEND_API_URL=...` if needed.
+## backend API URL must be baked here (not injected at runtime). The default is
+## a same-origin relative path (`/api`); route that path to the cognee backend
+## at the edge. Override with `--build-arg NEXT_PUBLIC_BACKEND_API_URL=...`.
 
 ## Stage 1: fetch the frontend source at the latest stable cognee release tag
 FROM debian:stable-slim@sha256:ee12ffb55625b99d62837a72f037d9b2f18fd0c787a89c2b9a4f09666c48776c AS fetcher
@@ -35,8 +36,10 @@ COPY --from=fetcher /tmp/cognee-src/cognee-frontend/ ./
 # start with two config files, so drop the empty .mjs and keep the .ts one.
 RUN rm -f next.config.mjs
 
-# NEXT_PUBLIC_* are inlined at build time. Point the browser at the public API.
-ARG NEXT_PUBLIC_BACKEND_API_URL=https://cognee.kien.cc/api
+# NEXT_PUBLIC_* are inlined at build time. Default to a same-origin relative
+# path so no environment-specific hostname is baked into the public image;
+# route `/api` to the cognee backend at the edge (ingress/gateway).
+ARG NEXT_PUBLIC_BACKEND_API_URL=/api
 ARG NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT=false
 ENV NEXT_PUBLIC_BACKEND_API_URL=${NEXT_PUBLIC_BACKEND_API_URL}
 ENV NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT=${NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT}
