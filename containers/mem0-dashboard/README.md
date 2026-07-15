@@ -40,6 +40,13 @@ or `entrypoint.sh` won't substitute them.
 - `ENTRYPOINT` runs `entrypoint.sh` (placeholder substitution) then
   `CMD ["node", "server.js"]`.
 
+## Platform
+
+Built for `linux/amd64` only. The `arm64` build fails under the CI's QEMU
+emulation (`pnpm install` crashes with `qemu: uncaught target signal 4`), and
+this is an admin web UI with no need to run on arm nodes. Schedule the pod on
+an amd64 node (e.g. a `nodeSelector`).
+
 ## Versioning
 
 `VERSION` resolves the latest stable `mem0ai/mem0` release tag (stripping the
