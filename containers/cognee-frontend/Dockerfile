@@ -56,6 +56,11 @@ ENV NEXT_PUBLIC_LOCAL_API_URL=NEXT_PUBLIC_LOCAL_API_URL
 ENV NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT=NEXT_PUBLIC_IS_CLOUD_ENVIRONMENT
 ENV NEXT_PUBLIC_COGWIT_API_KEY=NEXT_PUBLIC_COGWIT_API_KEY
 
+# v1.4.0 carries a stale suppression above the d3-force-3d dynamic import.
+# The dependency now provides types, so TypeScript rejects the unused directive.
+RUN sed -i '/@ts-expect-error d3-force-3d has no types/d' \
+      'src/app/(graph)/GraphVisualization.tsx'
+
 RUN npm run build
 
 ## Stage 3: runtime
