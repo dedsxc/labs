@@ -58,8 +58,17 @@ ENV NEXT_PUBLIC_COGWIT_API_KEY=NEXT_PUBLIC_COGWIT_API_KEY
 
 # v1.4.0 carries a stale suppression above the d3-force-3d dynamic import.
 # The dependency now provides types, so TypeScript rejects the unused directive.
+# It also requests the datasets collection with a trailing slash while the API
+# declares the route without one. FastAPI redirects that request using the
+# internal HTTP scheme behind Traefik; browsers then block the HTTPS-to-HTTP
+# redirect. Use the canonical no-trailing-slash URL and avoid the redirect.
 RUN sed -i '/@ts-expect-error d3-force-3d has no types/d' \
-      'src/app/(graph)/GraphVisualization.tsx'
+      'src/app/(graph)/GraphVisualization.tsx' \
+    && sed -i \
+      -e 's|instance.fetch("/v1/datasets/",|instance.fetch("/v1/datasets",|' \
+      -e 's|instance.fetch(`/v1/datasets/`,|instance.fetch(`/v1/datasets`,|' \
+      'src/modules/datasets/getDatasets.ts' \
+      'src/modules/datasets/createDataset.ts'
 
 RUN npm run build
 
