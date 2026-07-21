@@ -25,7 +25,7 @@ RUN LATEST_TAG=$(curl -sX GET "https://api.github.com/repos/topoteretes/cognee/r
     && test -d /tmp/cognee-src/cognee-frontend
 
 ## Stage 2: install deps and build the Next.js app (npm, standalone output)
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS builder
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS builder
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -64,7 +64,7 @@ RUN sed -i '/@ts-expect-error d3-force-3d has no types/d' \
 RUN npm run build
 
 ## Stage 3: runtime
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
