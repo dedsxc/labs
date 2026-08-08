@@ -1,5 +1,5 @@
 ## Stage 1: Fetch the mem0 server source at the latest stable release tag
-FROM debian:stable-slim@sha256:328d16499860ae6cb9b345e2e4cebca08c2a36e4f7278482c7bd1f39d71e5bfd AS fetcher
+FROM debian:stable-slim@sha256:0d97731c59efdde181e19c4a5ec22d16e9eefcb73175598b9b7bae712c7214eb AS fetcher
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl jq ca-certificates
 
@@ -13,7 +13,7 @@ RUN LATEST_TAG=$(curl -sX GET "https://api.github.com/repos/mem0ai/mem0/releases
     && tar -xzf /tmp/mem0.tar.gz -C /tmp/mem0-src --strip-components=1
 
 ## Stage 2: Build the runtime image
-FROM python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
 
 WORKDIR /app
 

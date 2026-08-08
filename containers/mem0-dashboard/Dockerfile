@@ -11,7 +11,7 @@
 ## API URL / instance name stay configurable at RUNTIME. We keep that mechanism.
 
 ## Stage 1: fetch the dashboard source at the latest stable mem0 release tag
-FROM debian:stable-slim@sha256:328d16499860ae6cb9b345e2e4cebca08c2a36e4f7278482c7bd1f39d71e5bfd AS fetcher
+FROM debian:stable-slim@sha256:0d97731c59efdde181e19c4a5ec22d16e9eefcb73175598b9b7bae712c7214eb AS fetcher
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl jq ca-certificates
 
