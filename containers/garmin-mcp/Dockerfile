@@ -2,6 +2,9 @@ FROM python:3.12.11-slim-bookworm
 
 ARG GARMIN_MCP_COMMIT=3610be6feed93088d85b0f35aba9d7d07c2505a7
 
+LABEL org.opencontainers.image.source="https://github.com/dedsxc/labs" \
+      org.opencontainers.image.description="Garmin Connect MCP server"
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
