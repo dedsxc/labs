@@ -13,10 +13,10 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential ca-certificates git \
-    && git clone https://github.com/Tracer-Cloud/opensre.git /src opensre \
-    && cd /src opensre && git checkout --detach "${OPENSRE_COMMIT}" \
+    && git clone https://github.com/Tracer-Cloud/opensre.git /src/opensre \
+    && cd /src/opensre && git checkout --detach "${OPENSRE_COMMIT}" \
     && python -m pip install --upgrade pip \
-    && python -m pip install "./src/opensre[postgresql]" \
+    && python -m pip install "/src/opensre[postgresql]" \
     && rm -rf /src /root/.cache /var/lib/apt/lists/* \
     && apt-get purge -y --auto-remove build-essential git \
     && groupadd --gid 1000 opensre \
