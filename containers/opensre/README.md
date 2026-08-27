@@ -1,6 +1,6 @@
 # OpenSRE
 
-Reproducible build of [OpenSRE](https://github.com/Tracer-Cloud/opensre) pinned to an upstream commit.
+Reproducible build of [OpenSRE](https://github.com/Tracer-Cloud/opensre) pinned to an upstream release tag.
 
 The container runs the FastAPI web runtime on port `8000` as a non-root user. Update both `opensre/containers/opensre/Dockerfile` and `VERSION` when bumping upstream.
 
