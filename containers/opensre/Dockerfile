@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG OPENSRE_COMMIT=7eef52a0304405b1a4174f322d286bcc4d805f5f
+ARG OPENSRE_VERSION=v0.1.2026.8.27
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -14,7 +14,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential ca-certificates git \
     && git clone https://github.com/Tracer-Cloud/opensre.git /src/opensre \
-    && cd /src/opensre && git checkout --detach "${OPENSRE_COMMIT}" \
+    && cd /src/opensre && git checkout --detach "${OPENSRE_VERSION}" \
     && python -m pip install --upgrade pip \
     && python -m pip install "/src/opensre[postgresql]" \
     && rm -rf /src /root/.cache /var/lib/apt/lists/* \
