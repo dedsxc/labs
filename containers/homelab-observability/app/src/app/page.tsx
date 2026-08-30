@@ -1,9 +1,9 @@
 "use client";
 
-import { Activity, AlertTriangle, Bell, Box, CircleDatabase, Clock3, Cpu, HardDrive, LayoutDashboard, Menu, Network, RefreshCw, Search, Server, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Activity, AlertTriangle, Bell, Box, Database, Clock3, Cpu, HardDrive, LayoutDashboard, Menu, Network, RefreshCw, Search, Server, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
-const nav = [["Overview",LayoutDashboard],["Nodes & workloads",Server],["Storage & network",Network],["Databases",CircleDatabase],["Alerts",Bell]] as const;
+const nav = [["Overview",LayoutDashboard],["Nodes & workloads",Server],["Storage & network",Network],["Databases",Database],["Alerts",Bell]] as const;
 const nodes = [
   ["k3s-control-01","control + compute","Healthy",42,71,62,"1.82","48d"],
   ["k3s-control-02","etcd","Healthy",18,39,31,"0.44","48d"],
