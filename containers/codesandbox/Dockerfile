@@ -1,5 +1,5 @@
 # --- Serve with nginx ---
-FROM nginx:1.31-alpine-perl@sha256:5a1b9b3dd82ce370617a2ad9825c03b354415b2f74f856a54273a5ec6052cb38
+FROM nginx:1.31-alpine-perl@sha256:f1aec5de9d214ab7dad6b67c6665ee9eaa55ac890c710700216804d8b4829802
 
 COPY ./www /usr/share/nginx/html
 
