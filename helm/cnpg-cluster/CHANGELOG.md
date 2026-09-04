@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.3.0...cnpg-cluster-4.4.0) (2026-09-04)
+
+
+### Features
+
+* **cnpg-cluster:** add PostgreSQL replication support ([#370](https://github.com/dedsxc/labs/issues/370)) ([6340b87](https://github.com/dedsxc/labs/commit/6340b8738abfcc852b636b1286c53895e519f28c))
+
 ## [4.3.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.2.0...cnpg-cluster-4.3.0) (2026-03-19)
 
 
