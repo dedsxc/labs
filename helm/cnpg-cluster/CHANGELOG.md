@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.4.0...cnpg-cluster-4.4.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **cnpg-cluster:** render annotations and affinity as YAML blocks ([4f95840](https://github.com/dedsxc/labs/commit/4f958403fadeb301b170da7d8eb19a39301383f0))
+
 ## [4.4.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.3.0...cnpg-cluster-4.4.0) (2026-09-04)
 
 
