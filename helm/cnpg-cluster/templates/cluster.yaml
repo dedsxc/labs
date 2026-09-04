@@ -3,12 +3,14 @@ kind: Cluster
 metadata:
   name: {{ .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
   namespace: {{ .Release.Namespace | default "cloudnative-pg" }}
-  {{- with .Values.cluster.annotations -}}
-  annotations: {{ toYaml . | nindent 4 }}
+  {{- with .Values.cluster.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- with .Values.cluster.affinity -}}
-  affinity: {{ toYaml . | nindent 4 }}
+  {{- with .Values.cluster.affinity }}
+  affinity:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 
   instances: {{ .Values.cluster.instances | default 2 }}
