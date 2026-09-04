@@ -3,7 +3,11 @@ cluster:
   # -- Name of the cluster, default to releaseName-cluster
   clusterName: ""
 
-  # -- Replicas number
+  # -- Replica configuration
+  # https://cloudnative-pg.io/docs/1.30/replica_cluster
+  replica: {}
+  
+  # -- Instances number
   instances: 2
   annotations: {}
   affinity: {}
@@ -36,14 +40,7 @@ cluster:
 
   # -- Postgresql configuration
   # https://cloudnative-pg.io/docs/1.28/postgresql_conf/
-  postgresql:
-    parameters:
-      max_connections: "300"
-
-    # -- Enable extension
-    # shared_preload_libraries:
-    #   - extension_name
-    shared_preload_libraries: []
+  postgresql: {}
 
   # -- Admin superuser
   superuserSecret: superuser-secret

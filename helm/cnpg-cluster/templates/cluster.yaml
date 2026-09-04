@@ -3,63 +3,87 @@ kind: Cluster
 metadata:
   name: {{ .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
   namespace: {{ .Release.Namespace | default "cloudnative-pg" }}
-  annotations: {{ .Values.cluster.annotations | toYaml | nindent 4 }}
+  {{- with .Values.cluster.annotations -}}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  affinity: {{ .Values.cluster.affinity | toYaml | nindent 4 }}
+  {{- with .Values.cluster.affinity -}}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}
+
   instances: {{ .Values.cluster.instances | default 2 }}
+  
   {{- if and .Values.cluster.imageCatalogRef .Values.cluster.imageCatalogRef.name }}
   imageCatalogRef:
   {{- toYaml .Values.cluster.imageCatalogRef | nindent 4 }}
   {{- else }}
   imageName: {{ .Values.cluster.image.name | quote }}
   {{- end }}
+  
   imagePullPolicy: {{ .Values.cluster.image.pullPolicy | default "IfNotPresent" }}
-  {{- if .Values.cluster.imagePullSecrets }}
+  
+  {{- with .Values.cluster.imagePullSecrets }}
   imagePullSecrets:
-    {{- range .Values.cluster.imagePullSecrets }}
-    - name: {{ .name }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
+
   storage:
     size: {{ .Values.cluster.storage.size | default "10Gi" }}
     storageClass: {{ .Values.cluster.storage.storageClass | default "openebs-hostpath" }}
+
   walStorage:
     size: {{ .Values.cluster.walStorage.size | default "4Gi" }}
     storageClass: {{ .Values.cluster.walStorage.storageClass | default "openebs-hostpath" }}
-  {{- if .Values.cluster.resources }}
+
+  {{- with .Values.cluster.resources }}
   resources:
-    {{- toYaml .Values.cluster.resources | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
+
   superuserSecret:
     name: {{ .Values.cluster.superuserSecret | default "superuser-secret" }}
+
   enablePDB: true
+
   enableSuperuserAccess: {{ .Values.cluster.enableSuperuserAccess | default false }}
+
+  {{- with .Values.cluster.postgresql }}
   postgresql:
-    {{- toYaml .Values.cluster.postgresql | nindent 4 }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.cluster.roles }}
   managed:
     roles:
-      {{- toYaml .Values.cluster.roles | nindent 6 }}
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
   
-  {{- if .Values.cluster.monitoring }}
+  {{- with .Values.cluster.monitoring }}
   monitoring:
-    {{- toYaml .Values.cluster.monitoring | nindent 4 }}
-  {{ end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   
-  {{- if .Values.cluster.plugins }}
-  plugins: {{ .Values.cluster.plugins | toYaml | nindent 2 }}
-  {{ end }}
+  {{- with .Values.cluster.plugins }}
+  plugins:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
-  {{- if .Values.cluster.bootstrap }}
+  {{- with .Values.cluster.bootstrap }}
   bootstrap:
-    {{- toYaml .Values.cluster.bootstrap | nindent 4 }}
-  {{ end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
-  {{- if .Values.cluster.externalClusters }}
+  {{- with .Values.cluster.externalClusters }}
   externalClusters:
-    {{- toYaml .Values.cluster.externalClusters | nindent 4 }}
-  {{ end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
-  {{- if .Values.cluster.backup }}
+  {{- with .Values.cluster.backup }}
   backup:
-    {{- toYaml .Values.cluster.backup | nindent 4 }}
-  {{ end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.cluster.replica }}
+  replica:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
