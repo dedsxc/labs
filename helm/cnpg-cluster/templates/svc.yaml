@@ -1,12 +1,29 @@
-{{ if .Values.cluster.externalService.enabled }}
+{{- if .Values.cluster.externalService.enabled }}
 {{- $clusterName := .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
+{{- if and (empty .Values.cluster.externalService.loadBalancerSourceRanges) (not .Values.cluster.externalService.allowAllSources) -}}
+{{- fail "cluster.externalService.loadBalancerSourceRanges must be defined when externalService.enabled=true to restrict access (e.g. private NAT ORVpn subnet). To explicitly allow all sources, set cluster.externalService.allowAllSources=true." -}}
+{{- end -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Release.Name }}-lb
   namespace: {{ .Release.Namespace }}
+  {{- with .Values.cluster.externalService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: LoadBalancer
+  {{- with .Values.cluster.externalService.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with .Values.cluster.externalService.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with .Values.cluster.externalService.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   ports:
     - name: postgres
       port: 5432
@@ -14,5 +31,5 @@ spec:
       protocol: TCP
   selector:
     cnpg.io/cluster: {{ $clusterName }}
-    cnpg.io/instanceRole: {{ .Values.cluster.externalService.targetRole | default "primary" }}
+    cnpg.io/instanceRole: {{ .Values.cluster.externalService.targetInstanceRole | default "primary" }}
 {{ end }}

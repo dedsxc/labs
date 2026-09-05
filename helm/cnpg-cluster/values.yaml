@@ -4,7 +4,7 @@ cluster:
   clusterName: ""
 
   # -- Replica configuration
-  # https://cloudnative-pg.io/docs/1.30/replica_cluster
+  # https://cloudnative-pg.io/docs/1.30/replica_cluster/
   replica: {}
   
   # -- Instances number
@@ -33,10 +33,21 @@ cluster:
     storageClass: openebs-hostpath
     size: 1Gi
 
+  # -- Certificates configuration pass-through to Cluster.spec.certificates
+  # https://cloudnative-pg.io/docs/1.30/certificates/
+  certificates: {}
+
   # -- Enable external service to expose the primary instance
   externalService:
     enabled: false
     targetInstanceRole: primary
+    annotations: {}
+    loadBalancerClass: ""
+    loadBalancerIP: ""
+    # -- Restrict access to specific IP ranges (e.g. private VPC/VPN subnets)
+    loadBalancerSourceRanges: []
+    # -- Explicitly allow all sources (0.0.0.0/0) if no source ranges are provided
+    allowAllSources: false
 
   # -- Postgresql configuration
   # https://cloudnative-pg.io/docs/1.28/postgresql_conf/
@@ -105,15 +116,27 @@ cluster:
   # -- Enable backup configuration
   backup: {}
 
-  # -- Connect to an external cluster for recovery
-  # https://cloudnative-pg.io/docs/1.28/recovery/
+  # -- Connect to an external cluster for recovery or replication
+  # https://cloudnative-pg.io/docs/1.30/replica_cluster/
   # externalClusters:
-  #   - name: origin
-  #     plugin:
-  #       name: barman-cloud.cloudnative-pg.io
-  #       parameters:
-  #         barmanObjectName: cluster-example-backup
-  #         serverName: cluster-example
+  #   - name: primary-dc
+  #     connectionParameters:
+  #       host: 10.100.0.50
+  #       user: streaming_replica
+  #       dbname: postgres
+  #       sslmode: verify-full
+  #       sslrootcert: /etc/ssl/postgres/ca.crt
+  #       sslcert: /etc/ssl/postgres/tls.crt
+  #       sslkey: /etc/ssl/postgres/tls.key
+  #     sslRootCert:
+  #       name: postgres-ca
+  #       key: ca.crt
+  #     sslCert:
+  #       name: postgres-client-cert
+  #       key: tls.crt
+  #     sslKey:
+  #       name: postgres-client-key
+  #       key: tls.key
   externalClusters: []
 
 # -- Create db on cloudnative-pg
@@ -135,7 +158,7 @@ database:
   #       dbSourceHost: <db-source-host>
   #       dbSourceSecretName: <db-source-secret-name>
   #     extensions:
-  #       - name: extenstion_name
+  #       - name: extension_name
   #         ensure: present
   #     schemas:
   #       - name: datadog
@@ -178,7 +201,7 @@ scheduledBackup:
 #       destinationPath: s3://backup
 #       endpointURL: http://s3.minio.svc.cluster.local:9000
 #       s3Credentials:
-#       # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
+#         # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
 #         accessKeyId:
 #           name: s3-minio-secret
 #           key: MINIO_ROOT_USER
@@ -190,4 +213,3 @@ scheduledBackup:
 #     retentionPolicy: 30d
 objectStore:
   enabled: false
-

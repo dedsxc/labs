@@ -31,6 +31,8 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
       - [cluster.externalClusters](#clusterexternalclusters)
       - [cluster.plugins](#clusterplugins)
       - [cluster.backup](#clusterbackup)
+      - [cluster.certificates](#clustercertificates)
+      - [cluster.replica](#clusterreplica)
       - [cluster.monitoring and cluster.podMonitor](#clustermonitoring-and-clusterpodmonitor)
       - [cluster.externalService](#clusterexternalservice)
     - [database](#database)
@@ -47,6 +49,7 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
   - [Service endpoints](#service-endpoints)
   - [Secret format (auto-generated per database)](#secret-format-auto-generated-per-database)
   - [Production-ready examples](#production-ready-examples)
+    - [Multi-DC Replication with WireGuard (Site-to-Site) and CNPG Replica Cluster](#multi-dc-replication-with-wireguard-site-to-site-and-cnpg-replica-cluster)
     - [Minimal single-instance cluster](#minimal-single-instance-cluster)
     - [HA cluster with multiple databases, monitoring, and S3 backup](#ha-cluster-with-multiple-databases-monitoring-and-s3-backup)
     - [Bootstrap from S3 backup (disaster recovery)](#bootstrap-from-s3-backup-disaster-recovery)
@@ -180,6 +183,8 @@ cluster:
   externalClusters: []         # list — external clusters for recovery or replication
   plugins: []                  # list — CNPG plugins (e.g. barman-cloud)
   backup: {}                   # map — backup configuration (barmanObjectStore, volumeSnapshot, etc.)
+  certificates: {}             # map — pass-through to Cluster.spec.certificates (custom TLS/mTLS)
+  replica: {}                  # map — replica cluster configuration (Cluster.spec.replica)
   monitoring: {}               # map — CNPG monitoring configuration
   podMonitor:
     enabled: false             # bool — creates a PodMonitor for Prometheus Operator
@@ -187,6 +192,11 @@ cluster:
   externalService:
     enabled: false             # bool — creates a LoadBalancer Service
     targetInstanceRole: primary  # primary | replica
+    annotations: {}            # map[string]string — annotations on the Service (e.g. MetalLB pool)
+    loadBalancerClass: ""       # string — LB implementation class (e.g. metallb)
+    loadBalancerIP: ""          # string — static IP for the LoadBalancer Service
+    loadBalancerSourceRanges: [] # list[string] — CIDRs allowed to reach the LoadBalancer (e.g. private VPN subnet)
+    allowAllSources: false     # bool — explicit opt-out to allow 0.0.0.0/0 when source ranges are empty
 ```
 
 #### cluster.image vs cluster.imageCatalogRef
@@ -309,6 +319,31 @@ cluster:
           serverName: postgresql-cluster  # name of the source cluster in the backup
 ```
 
+#### cluster.certificates
+
+Full pass-through to `Cluster.spec.certificates`. Enables custom TLS certificates for server and client authentication (mTLS).
+
+```yaml
+cluster:
+  certificates:
+    serverTLSSecret: custom-server-tls
+    serverCASecret: custom-ca
+    clientCASecret: custom-client-ca
+```
+
+#### cluster.replica
+
+Configures CNPG replica cluster mode (`Cluster.spec.replica`).
+
+```yaml
+cluster:
+  replica:
+    enabled: true
+    source: primary-dc   # must match a cluster.externalClusters[].name
+```
+
+> **Rule:** When `replica.enabled: true`, `replica.source` is **REQUIRED** and must match a named entry in `cluster.externalClusters`. Chart render fails with a Helm `fail` error if it is missing.
+
 #### cluster.externalClusters
 
 Used for recovery and logical replication sources.
@@ -373,16 +408,26 @@ cluster:
 
 #### cluster.externalService
 
-Creates a `LoadBalancer` Service pointing to the primary (or replica) instance.
+Creates a `LoadBalancer` Service pointing to the primary (or replica) instance, designed for exposing PostgreSQL securely over a private network / WireGuard VPN.
 
 ```yaml
 cluster:
   externalService:
     enabled: true
     targetInstanceRole: primary   # primary | replica
+    annotations:
+      metallb.universe.tf/address-pool: vpn-pool
+    loadBalancerClass: metallb
+    loadBalancerIP: 10.100.0.50
+    loadBalancerSourceRanges:
+      - 10.100.0.0/24   # DC1 VPN subnet
+      - 10.200.0.0/24   # DC2 VPN subnet
+    allowAllSources: false
 # Generated: Service/<release-name>-lb (type: LoadBalancer, port: 5432)
 # Selector: cnpg.io/cluster=<clusterName>, cnpg.io/instanceRole=primary
 ```
+
+> **Security Rule:** When `externalService.enabled: true`, either `loadBalancerSourceRanges` must be non-empty or `allowAllSources: true` must be explicitly set. Helm will `fail` at render time if an external Service is enabled without restriction.
 
 ---
 
@@ -580,6 +625,91 @@ hot-reloads credentials without a pod restart.
 ---
 
 ## Production-ready examples
+
+### Multi-DC Replication with WireGuard (Site-to-Site) and CNPG Replica Cluster
+
+#### Architecture Overview (WireGuard Site-to-Site)
+
+For multi-DC PostgreSQL replication (e.g. Active/Standby between DC1 and DC2), **WireGuard is deployed outside the CNPG chart** (at node, host gateway, or dedicated gateway router level via Netmaker, Cilium mesh, or systemd-networkd / wg-quick).
+
+```
+   +-----------------------------------------------------------------------------------+
+   |                                 WireGuard Tunnel                                  |
+   |              (Encrypted Site-to-Site Mesh: e.g. 10.100.0.0/24 <-> 10.200.0.0/24)   |
+   +-----------------------------------------------------------------------------------+
+             ^                                                                 ^
+             |                                                                 |
+  +--------------------+                                            +--------------------+
+  | Datacenter 1 (DC1) |                                            | Datacenter 2 (DC2) |
+  | Primary Cluster    |                                            | Replica Cluster    |
+  | (cnpg-cluster)     |                                            | (cnpg-cluster)     |
+  |                    |                                            |                    |
+  | LoadBalancer Svc   |                                            | Cluster spec:      |
+  | (IP: 10.100.0.50)  | <======== Streaming Replication =========> | - replica.enabled  |
+  | - TLS / mTLS       |           (verify-full + mTLS)             | - replica.source:  |
+  | - SourceRanges:    |                                            |     primary-dc     |
+  |   10.200.0.0/24    |                                            |                    |
+  +--------------------+                                            +--------------------+
+```
+
+> ⚠️ **CRITICAL SECURITY NOTE:**
+> - **NEVER commit private keys** (WireGuard private keys, PostgreSQL TLS private keys `tls.key`, or client authentication keys) into Git repositories.
+> - Store private keys and certificates in secure Secrets (managed via External Secrets Operator, HashiCorp Vault, or sealed secrets).
+
+#### Primary Cluster Values (DC1)
+
+```yaml
+cluster:
+  clusterName: postgres-dc1
+  instances: 2
+  certificates:
+    serverTLSSecret: postgres-server-tls
+    serverCASecret: postgres-ca
+    clientCASecret: postgres-ca
+  externalService:
+    enabled: true
+    annotations:
+      metallb.universe.tf/address-pool: vpn-pool
+    loadBalancerIP: 10.100.0.50
+    loadBalancerSourceRanges:
+      - 10.200.0.0/24   # Restrict access strictly to DC2 VPN subnet
+```
+
+#### Replica Cluster Values (DC2)
+
+```yaml
+cluster:
+  clusterName: postgres-dc2
+  instances: 2
+  replica:
+    enabled: true
+    source: primary-dc
+  certificates:
+    serverTLSSecret: postgres-server-tls
+    serverCASecret: postgres-ca
+    clientCASecret: postgres-ca
+  externalClusters:
+    - name: primary-dc
+      connectionParameters:
+        host: 10.100.0.50
+        user: streaming_replica
+        dbname: postgres
+        sslmode: verify-full
+        sslrootcert: /etc/ssl/postgres/ca.crt
+        sslcert: /etc/ssl/postgres/tls.crt
+        sslkey: /etc/ssl/postgres/tls.key
+      sslRootCert:
+        name: postgres-ca
+        key: ca.crt
+      sslCert:
+        name: postgres-client-cert
+        key: tls.crt
+      sslKey:
+        name: postgres-client-key
+        key: tls.key
+```
+
+---
 
 ### Minimal single-instance cluster
 
@@ -918,6 +1048,9 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 | 10 | **`objectStore` and `scheduledBackup.plugin` are independent.** The ObjectStore defines WHERE to store, the plugin backup defines WHEN to trigger. Both are needed for full barman-cloud backup. | Missing ObjectStore means plugin backups will fail at runtime even if the ScheduledBackup is created. |
 | 11 | **The generated Secret uses `cnpg.io/reload: "true"` label.** The CNPG operator watches for this label to hot-reload credentials. | Removing this label causes the cluster to not pick up password rotations without a restart. |
 | 12 | **`database.databaseReclaimPolicy: retain` (default).** Database CRDs deleted via Helm do NOT drop the PostgreSQL database. | Use `delete` only if you explicitly want the CNPG operator to DROP the database on CRD deletion. |
+| 13 | **`cluster.replica.source` is REQUIRED when `cluster.replica.enabled: true`.** Must match a name in `cluster.externalClusters`. | Helm template rendering fails with a `fail` error. |
+| 14 | **`cluster.externalService.loadBalancerSourceRanges` is REQUIRED when `externalService.enabled: true` (unless `allowAllSources: true`).** Exposing without restriction is blocked. | Helm template rendering fails with a `fail` error. |
+| 15 | **Never commit WireGuard or TLS private keys.** WireGuard site-to-site setup must stay outside the chart; secrets must be injected via ESO or Kubernetes Secrets. | Critical security leak if private keys are committed into version control. |
 
 ---
 
