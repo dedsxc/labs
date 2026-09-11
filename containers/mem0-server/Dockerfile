@@ -13,7 +13,7 @@ RUN LATEST_TAG=$(curl -sX GET "https://api.github.com/repos/mem0ai/mem0/releases
     && tar -xzf /tmp/mem0.tar.gz -C /tmp/mem0-src --strip-components=1
 
 ## Stage 2: Build the runtime image
-FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea
+FROM python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5
 
 WORKDIR /app
 
