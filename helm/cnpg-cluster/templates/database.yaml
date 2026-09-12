@@ -13,7 +13,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: {{ printf "%s-%s-%s" .name $.Release.Name "cluster" }}
+  name: {{ printf "%s-%s-%s" (.name | replace "_" "-") $.Release.Name "cluster" }}
 spec:
   databaseReclaimPolicy: {{ $databaseReclaimPolicy | default "retain" }}
   name: {{ .name }}
