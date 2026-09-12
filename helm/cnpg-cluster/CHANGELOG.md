@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.4.1...cnpg-cluster-4.4.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* **database:** sanitize underscores in generated resource name ([b25e934](https://github.com/dedsxc/labs/commit/b25e9349cb02c752b7a6ba2160bf488e052a45f7))
+
 ## [4.4.1](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.4.0...cnpg-cluster-4.4.1) (2026-09-04)
 
 
