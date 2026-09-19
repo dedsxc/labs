@@ -1,4 +1,4 @@
-FROM python:3.12.11-slim-bookworm
+FROM python:3.14.7-slim-bookworm
 
 ARG GARMIN_MCP_COMMIT=3610be6feed93088d85b0f35aba9d7d07c2505a7
 
