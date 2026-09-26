@@ -1,5 +1,5 @@
 ## Stage 1: Fetch the latest version and determine the architecture
-FROM debian:stable-slim@sha256:04634311a8d5fc442b6eb06d792293c4f3e2268652ca7634e00ce8ef5cc0a28a AS fetcher
+FROM debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce AS fetcher
 
 ENV LATEST_ENDPOINT=https://api.github.com/repos/meilisearch/meilisearch/releases/latest
 
@@ -23,7 +23,7 @@ RUN source /tmp/version_info && \
     chmod +x /tmp/meilisearch
 
 ## Stage 2: Install node
-FROM debian:stable-slim@sha256:04634311a8d5fc442b6eb06d792293c4f3e2268652ca7634e00ce8ef5cc0a28a
+FROM debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce
 
 ENV HOME=/data
 
