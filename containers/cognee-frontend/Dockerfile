@@ -12,7 +12,7 @@
 ## configurable at RUNTIME.
 
 ## Stage 1: fetch the frontend source at the latest stable cognee release tag
-FROM debian:stable-slim@sha256:04634311a8d5fc442b6eb06d792293c4f3e2268652ca7634e00ce8ef5cc0a28a AS fetcher
+FROM debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce AS fetcher
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl jq ca-certificates
 
@@ -25,7 +25,7 @@ RUN LATEST_TAG=$(curl -sX GET "https://api.github.com/repos/topoteretes/cognee/r
     && test -d /tmp/cognee-src/cognee-frontend
 
 ## Stage 2: install deps and build the Next.js app (npm, standalone output)
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS builder
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -73,7 +73,7 @@ RUN sed -i '/@ts-expect-error d3-force-3d has no types/d' \
 RUN npm run build
 
 ## Stage 3: runtime
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
