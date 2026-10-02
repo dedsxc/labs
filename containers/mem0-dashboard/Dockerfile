@@ -11,7 +11,7 @@
 ## API URL / instance name stay configurable at RUNTIME. We keep that mechanism.
 
 ## Stage 1: fetch the dashboard source at the latest stable mem0 release tag
-FROM debian:stable-slim@sha256:04634311a8d5fc442b6eb06d792293c4f3e2268652ca7634e00ce8ef5cc0a28a AS fetcher
+FROM debian:stable-slim@sha256:5bc3287b25407c965a30f38e32603dc253a3869e1b12a21ac09bfc27fd8b13ce AS fetcher
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl jq ca-certificates
 
@@ -26,7 +26,7 @@ RUN LATEST_TAG=$(curl -sX GET "https://api.github.com/repos/mem0ai/mem0/releases
     && test -d /tmp/mem0-src/server/dashboard
 
 ## Stage 2: install deps and build the Next.js app (pnpm, standalone output)
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS builder
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -44,7 +44,7 @@ ENV NEXT_PUBLIC_INSTANCE_NAME=NEXT_PUBLIC_INSTANCE_NAME
 RUN pnpm run build
 
 ## Stage 3: runtime
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
