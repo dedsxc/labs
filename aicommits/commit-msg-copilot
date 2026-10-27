@@ -1,0 +1,82 @@
+#!/bin/bash
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+MAX_DIFF_LENGTH=3500
+
+if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
+    exit 0
+fi
+
+# Récupération du message saisi par l'utilisateur (en ignorant les commentaires Git par défaut)
+ORIGINAL_MSG=$(grep -v '^#' "$COMMIT_MSG_FILE" | tr '\n' ' ' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+# Récupération du diff indexé en ignorant les fichiers de lock volumineux
+DIFF=$(git diff --cached -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)*.lock' ':(exclude)pnpm-lock.yaml')
+if [ -z "$DIFF" ]; then
+    exit 0
+fi
+
+if [ ${#DIFF} -gt $MAX_DIFF_LENGTH ]; then
+    DIFF="${DIFF:0:$MAX_DIFF_LENGTH}"$'\n...(diff truncated)'
+fi
+
+echo "Analyse des modifications avec Copilot..." >&2
+
+# Définition des règles strictes de ton agent commit_engineer
+read -r -d '' SYSTEM_PROMPT << 'EOF'
+You are a Senior Staff Git Commit Engineer.
+Generate a Conventional Commit message from the staged diff and optional user draft.
+
+CORE RULES:
+1. Format: type(scope): imperative-verb description
+2. Types: feat, fix, refactor, perf, test, build, ci, docs, style, chore, revert
+3. Subject: max 50 chars total (including type and scope), 72 hard limit
+4. Use imperative mood: "add", "fix", "remove", not past tense
+5. OUTPUT STRICTLY RAW COMMIT TEXT ONLY. Do not use Markdown, backticks (```), quotes, or explanations.
+
+USER INPUT PRIORITY:
+- If the user draft provides a type and/or scope, keep them verbatim unless clearly invalid.
+- If the user draft contains a Jira ticket (pattern: [A-Z]{2,10}-[0-9]+, e.g. ABC-1234, PROJ-42), the ticket MUST go in the commit scope — never only in the body.
+  * If no other scope: scope(TICKET-123)
+  * If component/environment present: scope(component/TICKET-123) or scope(TICKET-123/env)
+- Improve wording/grammar while preserving intent.
+
+SCOPE & ENVIRONMENT:
+- If no scope is provided, infer it from changed paths.
+- Detect environments (prd, prod, stage, stg, dev, qa, uat) and include in scope or body.
+- Combine using slash notation: scope(component/env).
+
+BODY RULES:
+- Include a body ONLY for: breaking changes, production-impacting changes, security fixes, or multi-environment updates.
+- Structure: Why, Impact, Rollback hint when relevant.
+- Breaking change syntax: "!" after scope and "BREAKING CHANGE:" footer.
+EOF
+
+# Assemblage du prompt final avec le brouillon utilisateur et le diff
+FULL_PROMPT="$SYSTEM_PROMPT
+
+USER DRAFT: $ORIGINAL_MSG
+
+CODE CHANGES:
+$DIFF"
+
+# Appel à Copilot CLI
+RESPONSE=$(copilot -p "$FULL_PROMPT" 2>/dev/null)
+
+# Nettoyage : suppression des backticks markdown éventuels (```) et espaces superflus
+NEW_MSG=$(echo "$RESPONSE" | sed -e '/^```/d' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr -d '\r')
+
+if [ -n "$NEW_MSG" ]; then
+    echo "$NEW_MSG" > "$COMMIT_MSG_FILE"
+    echo "Commit généré :"
+    echo "$NEW_MSG"
+else
+    if [ -z "$ORIGINAL_MSG" ]; then
+        FALLBACK_MSG="chore: update staged changes"
+        echo "$FALLBACK_MSG" > "$COMMIT_MSG_FILE"
+        echo "Warning: Copilot response empty. Fallback used: $FALLBACK_MSG"
+    else
+        echo "Warning: Copilot response empty. Original message preserved."
+    fi
+fi
