@@ -54,10 +54,21 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- with .Values.cluster.roles }}
+  {{- if or .Values.cluster.roles .Values.cluster.managedServices }}
   managed:
+    {{- with .Values.cluster.roles }}
     roles:
       {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.cluster.managedServices }}
+    services:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+
+  {{- with .Values.cluster.certificates }}
+  certificates:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   
   {{- with .Values.cluster.monitoring }}

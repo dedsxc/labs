@@ -33,11 +33,6 @@ cluster:
     storageClass: openebs-hostpath
     size: 1Gi
 
-  # -- Enable external service to expose the primary instance
-  externalService:
-    enabled: false
-    targetInstanceRole: primary
-
   # -- Postgresql configuration
   # https://cloudnative-pg.io/docs/1.28/postgresql_conf/
   postgresql: {}
@@ -57,6 +52,30 @@ cluster:
   #     passwordSecret:
   #       name: a4-bitcoin-testnet-cnpg
   roles: []
+
+  # -- Managed services (pass-through to Cluster.spec.managed.services)
+  # https://cloudnative-pg.io/docs/1.28/service_management/
+  # managedServices:
+  #   disabledDefaultServices: ["ro", "r"]
+  #   additional:
+  #     - selectorType: rw
+  #       updateStrategy: patch
+  #       serviceTemplate:
+  #         metadata:
+  #           name: my-cluster-rw-lb
+  #         spec:
+  #           type: LoadBalancer
+  managedServices: {}
+
+  # -- Certificates (pass-through to Cluster.spec.certificates)
+  # https://cloudnative-pg.io/docs/1.28/certificates/
+  # certificates:
+  #   serverTLSSecret: my-cluster-server-tls
+  #   serverCASecret: my-cluster-server-ca
+  #   clientCASecret: my-cluster-client-ca
+  #   replicationTLSSecret: my-cluster-replication-tls
+  #   serverAltDNSNames: ["pg.example.com"]
+  certificates: {}
 
   # -- Bootstrap configuration for new cluster
   # bootstrap:
