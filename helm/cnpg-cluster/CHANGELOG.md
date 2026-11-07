@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.4.2...cnpg-cluster-5.0.0) (2026-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cnpg-cluster:** cluster.externalService and the <release>-lb LoadBalancer Service are removed. Use cluster.managedServices (spec.managed.services) instead.
+
+### Features
+
+* **cnpg-cluster:** support certificates and managed.services, remove externalService ([#396](https://github.com/dedsxc/labs/issues/396)) ([49de340](https://github.com/dedsxc/labs/commit/49de3400560fd521ed2776d5c929665bebea4619))
+
 ## [4.4.2](https://github.com/dedsxc/labs/compare/cnpg-cluster-4.4.1...cnpg-cluster-4.4.2) (2026-09-12)
 
 
