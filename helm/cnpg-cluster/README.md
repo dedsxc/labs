@@ -27,6 +27,8 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
       - [cluster.storage and cluster.walStorage](#clusterstorage-and-clusterwalstroage)
       - [cluster.postgresql](#clusterpostgresql)
       - [cluster.roles](#clusterroles)
+      - [cluster.managedServices](#clustermanagedservices)
+      - [cluster.certificates](#clustercertificates)
       - [cluster.bootstrap](#clusterbootstrap)
       - [cluster.externalClusters](#clusterexternalclusters)
       - [cluster.plugins](#clusterplugins)
@@ -176,6 +178,8 @@ cluster:
   refreshPasswordInterval: 0s         # string — ESO refresh interval for superuser secret ("0s" = refresh once)
 
   roles: []                    # list — managed roles (see cluster.roles below)
+  managedServices: {}          # map — Cluster.spec.managed.services (see cluster.managedServices below)
+  certificates: {}             # map — Cluster.spec.certificates (see cluster.certificates below)
   bootstrap: {}                # map — bootstrap method (initdb or recovery)
   externalClusters: []         # list — external clusters for recovery or replication
   plugins: []                  # list — CNPG plugins (e.g. barman-cloud)
@@ -273,6 +277,47 @@ cluster:
       passwordSecret:
         name: myapp-cnpg       # name of the Kubernetes Secret containing the password
 ```
+
+#### cluster.managedServices
+
+Pass-through to `Cluster.spec.managed.services`: disable the default `-r` / `-ro` Services and
+declare additional Services (for example a `LoadBalancer` in front of the primary). It is rendered
+under `spec.managed`, next to `cluster.roles`, so both can be used together.
+
+```yaml
+cluster:
+  managedServices:
+    disabledDefaultServices: ["ro", "r"]   # list — valid values: r, ro (the `-rw` Service cannot be disabled)
+    additional:
+      - selectorType: rw                  # rw | r | ro
+        updateStrategy: patch             # patch | replace
+        serviceTemplate:
+          metadata:
+            name: mydb-rw-lb              # Service name (do not reuse a default name)
+          spec:
+            type: LoadBalancer
+```
+
+See [CNPG service management](https://cloudnative-pg.io/docs/1.28/service_management/). This is independent
+of `cluster.externalService`, which creates a separate `<release>-lb` Service from this chart.
+
+#### cluster.certificates
+
+Pass-through to `Cluster.spec.certificates`: bring your own server/client/replication certificates
+instead of the operator self-signed CA. Rendered only when set. The Secrets must exist in the Cluster's
+namespace (for example created by cert-manager).
+
+```yaml
+cluster:
+  certificates:
+    serverTLSSecret: mydb-server-tls            # kubernetes.io/tls Secret (tls.crt, tls.key)
+    serverCASecret: mydb-server-ca              # Secret with ca.crt (and ca.key if serverTLSSecret is unset)
+    clientCASecret: mydb-client-ca              # Secret with ca.crt, used to validate client certificates
+    replicationTLSSecret: mydb-replication-tls  # client certificate of the streaming_replica user
+    serverAltDNSNames: ["pg.example.com"]       # extra DNS names added to the generated server certificate
+```
+
+See [CNPG certificates](https://cloudnative-pg.io/docs/1.28/certificates/).
 
 #### cluster.bootstrap
 
