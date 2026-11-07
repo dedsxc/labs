@@ -1,43 +1,44 @@
-# 🪐 Home-labs
+# labs
 
-> Personal Kubernetes lab environment to deploy cloud-native technologies, and infrastructure automation
+Helm charts and container images for my homelab, published to GHCR under `ghcr.io/dedsxc`.
 
-[![Release Containers](https://github.com/dedsxc/labs/actions/workflows/release-containers.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/release-containers.yaml)
-[![Release Helm Charts](https://github.com/dedsxc/labs/actions/workflows/release-helm-charts.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/release-helm-charts.yaml)
-[![Docker Build Test](https://github.com/dedsxc/labs/actions/workflows/docker-build-test.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/docker-build-test.yaml)
-[![Renovate](https://github.com/dedsxc/labs/actions/workflows/renovate.yaml/badge.svg)](https://github.com/dedsxc/labs/actions/workflows/renovate.yaml)
+## Layout
 
-<div align="center">
+| Path          | Role                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| `helm/`       | Helm charts, one folder per chart, published as OCI artifacts           |
+| `containers/` | Container images, one folder per image, published to GHCR               |
+| `aicommits/`  | Git `commit-msg` hooks that generate commit messages                    |
+| `.github/`    | CI workflows, release-please and Renovate configuration                 |
 
-<img src=".github/rocket.png" alt="Neon Rocket Launch Control" width="200"/>
+## Helm charts
 
+A chart lives in `helm/<name>`. On a merge to `main`, release-please opens a release PR from the
+Conventional Commits; merging it publishes the chart to `oci://ghcr.io/dedsxc/<name>`.
+Pull requests dry-run the modified charts with `helm template` and `kubeconform`.
 
-| 🚀 Website                              | 📶 Status                                                                                                        |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **[Portfolio](https://kien.cc)**       | ![Status](https://status.kien.cc/api/badge/9/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
-| **[GPT](https://chat.kien.cc)**        | ![Status](https://status.kien.cc/api/badge/11/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
-| **[Outline](https://outline.kien.cc)** | ![Status](https://status.kien.cc/api/badge/10/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
-| **[Squoosh](https://squoosh.kien.cc)** | ![Status](https://status.kien.cc/api/badge/18/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
+```bash
+helm pull oci://ghcr.io/dedsxc/<name> --version <version>
+```
 
-</div>
+## Container images
 
----
+An image lives in `containers/<name>` and is published as `ghcr.io/dedsxc/<name>:<version>`. The
+folder contains:
 
-## Infrastructure 
+| File         | Role                                                                      |
+| ------------ | ------------------------------------------------------------------------- |
+| `Dockerfile` | Build definition                                                          |
+| `VERSION`    | Executable script that prints the image tag                               |
+| `PLATFORM`   | Target platforms, comma separated (for example `linux/amd64,linux/arm64`) |
 
-| 🛰️ Infrastructure    | 📶 Status                                                                                                        |
-| ------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Overview            | ![Status](https://status.kien.cc/api/badge/1/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
-| **ArgoCD**          | ![Status](https://status.kien.cc/api/badge/2/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge)  |
-| **Infisical**       | ![Status](https://status.kien.cc/api/badge/16/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
-| **Hashicorp Vault** | ![Status](https://status.kien.cc/api/badge/17/status?upColor=%237CFFEA&downColor=%23FF3C38&style=for-the-badge) |
+To add an image, create the folder with these three files. A merge to `main` builds and pushes the
+modified images, and a daily job rebuilds an image when its `VERSION` differs from the latest tag.
+Pull requests only build the modified images.
 
+## Contributing
 
-
-✨ **Legend:**  
-- 🟢 Online → glowing cyan  
-- 🔴 Offline → warning red  
-
----
-
-**Maintained by**: Kien Nguyen  
+- Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, and `feat!:`
+  for a breaking change. release-please derives the chart version from them.
+- Do not edit the `version` in `Chart.yaml` or `CHANGELOG.md`: release-please does it.
+- Hooks: `pre-commit install`.
