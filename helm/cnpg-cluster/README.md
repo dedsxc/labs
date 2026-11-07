@@ -27,12 +27,13 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
       - [cluster.storage and cluster.walStorage](#clusterstorage-and-clusterwalstroage)
       - [cluster.postgresql](#clusterpostgresql)
       - [cluster.roles](#clusterroles)
+      - [cluster.managedServices](#clustermanagedservices)
+      - [cluster.certificates](#clustercertificates)
       - [cluster.bootstrap](#clusterbootstrap)
       - [cluster.externalClusters](#clusterexternalclusters)
       - [cluster.plugins](#clusterplugins)
       - [cluster.backup](#clusterbackup)
       - [cluster.monitoring and cluster.podMonitor](#clustermonitoring-and-clusterpodmonitor)
-      - [cluster.externalService](#clusterexternalservice)
     - [database](#database)
       - [database.list entry](#databaselist-entry)
       - [database.list[].extensions](#databaselistextensions)
@@ -75,7 +76,6 @@ cnpg-cluster chart
 │                                    + v1 ServiceAccount / Role / RoleBinding / CronJob (retention cleaner)
 ├── templates/objectStore.yaml     → barmancloud.cnpg.io/v1 ObjectStore
 ├── templates/podMonitor.yaml      → monitoring.coreos.com/v1 PodMonitor
-└── templates/svc.yaml             → v1 Service (LoadBalancer, only when externalService.enabled)
 ```
 
 **Cluster naming rule:** `cluster.clusterName` defaults to `{{ .Release.Name }}-cluster`.
@@ -119,14 +119,13 @@ All internal Kubernetes Service names follow the CNPG convention:
 | `scheduledBackup.volumeSnapshot.enabled: true` | `ScheduledBackup` (volumeSnapshot method) + `ServiceAccount` + `Role` + `RoleBinding` + `CronJob` (retention cleaner) |
 | `objectStore.enabled: true` | `ObjectStore` (barmancloud.cnpg.io) |
 | `cluster.podMonitor.enabled: true` | `PodMonitor` |
-| `cluster.externalService.enabled: true` | `Service` (LoadBalancer) |
 
 ---
 
 ## Quick start
 
 ```bash
-# Minimal install — single instance, no backup, no external service
+# Minimal install — single instance, no backup
 helm upgrade --install my-postgres . \
   --set cluster.instances=1 \
   --set cluster.storage.storageClass=standard \
@@ -176,6 +175,8 @@ cluster:
   refreshPasswordInterval: 0s         # string — ESO refresh interval for superuser secret ("0s" = refresh once)
 
   roles: []                    # list — managed roles (see cluster.roles below)
+  managedServices: {}          # map — Cluster.spec.managed.services (see cluster.managedServices below)
+  certificates: {}             # map — Cluster.spec.certificates (see cluster.certificates below)
   bootstrap: {}                # map — bootstrap method (initdb or recovery)
   externalClusters: []         # list — external clusters for recovery or replication
   plugins: []                  # list — CNPG plugins (e.g. barman-cloud)
@@ -184,9 +185,6 @@ cluster:
   podMonitor:
     enabled: false             # bool — creates a PodMonitor for Prometheus Operator
 
-  externalService:
-    enabled: false             # bool — creates a LoadBalancer Service
-    targetInstanceRole: primary  # primary | replica
 ```
 
 #### cluster.image vs cluster.imageCatalogRef
@@ -273,6 +271,46 @@ cluster:
       passwordSecret:
         name: myapp-cnpg       # name of the Kubernetes Secret containing the password
 ```
+
+#### cluster.managedServices
+
+Pass-through to `Cluster.spec.managed.services`: disable the default `-r` / `-ro` Services and
+declare additional Services (for example a `LoadBalancer` in front of the primary). It is rendered
+under `spec.managed`, next to `cluster.roles`, so both can be used together.
+
+```yaml
+cluster:
+  managedServices:
+    disabledDefaultServices: ["ro", "r"]   # list — valid values: r, ro (the `-rw` Service cannot be disabled)
+    additional:
+      - selectorType: rw                  # rw | r | ro
+        updateStrategy: patch             # patch | replace
+        serviceTemplate:
+          metadata:
+            name: mydb-rw-lb              # Service name (do not reuse a default name)
+          spec:
+            type: LoadBalancer
+```
+
+See [CNPG service management](https://cloudnative-pg.io/docs/1.28/service_management/). This is independent
+
+#### cluster.certificates
+
+Pass-through to `Cluster.spec.certificates`: bring your own server/client/replication certificates
+instead of the operator self-signed CA. Rendered only when set. The Secrets must exist in the Cluster's
+namespace (for example created by cert-manager).
+
+```yaml
+cluster:
+  certificates:
+    serverTLSSecret: mydb-server-tls            # kubernetes.io/tls Secret (tls.crt, tls.key)
+    serverCASecret: mydb-server-ca              # Secret with ca.crt (and ca.key if serverTLSSecret is unset)
+    clientCASecret: mydb-client-ca              # Secret with ca.crt, used to validate client certificates
+    replicationTLSSecret: mydb-replication-tls  # client certificate of the streaming_replica user
+    serverAltDNSNames: ["pg.example.com"]       # extra DNS names added to the generated server certificate
+```
+
+See [CNPG certificates](https://cloudnative-pg.io/docs/1.28/certificates/).
 
 #### cluster.bootstrap
 
@@ -369,19 +407,6 @@ cluster:
     enabled: false        # bool — creates a monitoring.coreos.com/v1 PodMonitor
                           # The PodMonitor targets pods with label cnpg.io/cluster=<clusterName>
                           # and scrapes the `metrics` port.
-```
-
-#### cluster.externalService
-
-Creates a `LoadBalancer` Service pointing to the primary (or replica) instance.
-
-```yaml
-cluster:
-  externalService:
-    enabled: true
-    targetInstanceRole: primary   # primary | replica
-# Generated: Service/<release-name>-lb (type: LoadBalancer, port: 5432)
-# Selector: cnpg.io/cluster=<clusterName>, cnpg.io/instanceRole=primary
 ```
 
 ---
@@ -557,7 +582,6 @@ The CNPG operator automatically creates the following Services (not managed by t
 | `<clusterName>-rw` | ClusterIP | Primary instance | Read-write connections |
 | `<clusterName>-r` | ClusterIP | Any instance | Read-only load-balanced |
 | `<clusterName>-ro` | ClusterIP | Replica instances only | Read-only, never primary |
-| `<release-name>-lb` | LoadBalancer | Configurable | External access (optional) |
 
 ### Secret format (auto-generated per database)
 
@@ -685,10 +709,6 @@ cluster:
       isWALArchiver: true
       parameters:
         barmanObjectName: minio-store
-
-  externalService:
-    enabled: true
-    targetInstanceRole: primary
 
 database:
   autoGeneratePassword: true
@@ -943,7 +963,7 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 
 | Top-level key | Controls |
 |---|---|
-| `cluster` | CNPG `Cluster` CRD: instances, image, storage, WAL, PostgreSQL config, roles, bootstrap, recovery, plugins, backup, monitoring, external service |
+| `cluster` | CNPG `Cluster` CRD: instances, image, storage, WAL, PostgreSQL config, roles, bootstrap, recovery, plugins, backup, monitoring |
 | `database.list` | CNPG `Database` CRD per entry + ESO `ExternalSecret` + optional `Publication`/`Subscription`/`Job` |
 | `database.autoGeneratePassword` | Whether to create an `ExternalSecret` per database (requires `ClusterGenerator`) |
 | `database.databaseReclaimPolicy` | Whether CNPG drops the database when the `Database` CRD is deleted |
@@ -1467,14 +1487,6 @@ The chart automatically creates:
 2. **Read-Only Service:** `<release-name>-cluster-r`
    - Load-balances across all replicas
    - Ideal for read-heavy workloads
-
-3. **External Service (Optional):**
-```yaml
-cluster:
-  externalService:
-    enabled: true
-    targetInstanceRole: primary  # or 'any'
-```
 
 #### Automatic Failover
 
