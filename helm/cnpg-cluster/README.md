@@ -34,7 +34,6 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
       - [cluster.plugins](#clusterplugins)
       - [cluster.backup](#clusterbackup)
       - [cluster.monitoring and cluster.podMonitor](#clustermonitoring-and-clusterpodmonitor)
-      - [cluster.externalService](#clusterexternalservice)
     - [database](#database)
       - [database.list entry](#databaselist-entry)
       - [database.list[].extensions](#databaselistextensions)
@@ -77,7 +76,6 @@ cnpg-cluster chart
 │                                    + v1 ServiceAccount / Role / RoleBinding / CronJob (retention cleaner)
 ├── templates/objectStore.yaml     → barmancloud.cnpg.io/v1 ObjectStore
 ├── templates/podMonitor.yaml      → monitoring.coreos.com/v1 PodMonitor
-└── templates/svc.yaml             → v1 Service (LoadBalancer, only when externalService.enabled)
 ```
 
 **Cluster naming rule:** `cluster.clusterName` defaults to `{{ .Release.Name }}-cluster`.
@@ -121,14 +119,13 @@ All internal Kubernetes Service names follow the CNPG convention:
 | `scheduledBackup.volumeSnapshot.enabled: true` | `ScheduledBackup` (volumeSnapshot method) + `ServiceAccount` + `Role` + `RoleBinding` + `CronJob` (retention cleaner) |
 | `objectStore.enabled: true` | `ObjectStore` (barmancloud.cnpg.io) |
 | `cluster.podMonitor.enabled: true` | `PodMonitor` |
-| `cluster.externalService.enabled: true` | `Service` (LoadBalancer) |
 
 ---
 
 ## Quick start
 
 ```bash
-# Minimal install — single instance, no backup, no external service
+# Minimal install — single instance, no backup
 helm upgrade --install my-postgres . \
   --set cluster.instances=1 \
   --set cluster.storage.storageClass=standard \
@@ -188,9 +185,6 @@ cluster:
   podMonitor:
     enabled: false             # bool — creates a PodMonitor for Prometheus Operator
 
-  externalService:
-    enabled: false             # bool — creates a LoadBalancer Service
-    targetInstanceRole: primary  # primary | replica
 ```
 
 #### cluster.image vs cluster.imageCatalogRef
@@ -299,7 +293,6 @@ cluster:
 ```
 
 See [CNPG service management](https://cloudnative-pg.io/docs/1.28/service_management/). This is independent
-of `cluster.externalService`, which creates a separate `<release>-lb` Service from this chart.
 
 #### cluster.certificates
 
@@ -414,19 +407,6 @@ cluster:
     enabled: false        # bool — creates a monitoring.coreos.com/v1 PodMonitor
                           # The PodMonitor targets pods with label cnpg.io/cluster=<clusterName>
                           # and scrapes the `metrics` port.
-```
-
-#### cluster.externalService
-
-Creates a `LoadBalancer` Service pointing to the primary (or replica) instance.
-
-```yaml
-cluster:
-  externalService:
-    enabled: true
-    targetInstanceRole: primary   # primary | replica
-# Generated: Service/<release-name>-lb (type: LoadBalancer, port: 5432)
-# Selector: cnpg.io/cluster=<clusterName>, cnpg.io/instanceRole=primary
 ```
 
 ---
@@ -602,7 +582,6 @@ The CNPG operator automatically creates the following Services (not managed by t
 | `<clusterName>-rw` | ClusterIP | Primary instance | Read-write connections |
 | `<clusterName>-r` | ClusterIP | Any instance | Read-only load-balanced |
 | `<clusterName>-ro` | ClusterIP | Replica instances only | Read-only, never primary |
-| `<release-name>-lb` | LoadBalancer | Configurable | External access (optional) |
 
 ### Secret format (auto-generated per database)
 
@@ -730,10 +709,6 @@ cluster:
       isWALArchiver: true
       parameters:
         barmanObjectName: minio-store
-
-  externalService:
-    enabled: true
-    targetInstanceRole: primary
 
 database:
   autoGeneratePassword: true
@@ -988,7 +963,7 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 
 | Top-level key | Controls |
 |---|---|
-| `cluster` | CNPG `Cluster` CRD: instances, image, storage, WAL, PostgreSQL config, roles, bootstrap, recovery, plugins, backup, monitoring, external service |
+| `cluster` | CNPG `Cluster` CRD: instances, image, storage, WAL, PostgreSQL config, roles, bootstrap, recovery, plugins, backup, monitoring |
 | `database.list` | CNPG `Database` CRD per entry + ESO `ExternalSecret` + optional `Publication`/`Subscription`/`Job` |
 | `database.autoGeneratePassword` | Whether to create an `ExternalSecret` per database (requires `ClusterGenerator`) |
 | `database.databaseReclaimPolicy` | Whether CNPG drops the database when the `Database` CRD is deleted |
@@ -1512,14 +1487,6 @@ The chart automatically creates:
 2. **Read-Only Service:** `<release-name>-cluster-r`
    - Load-balances across all replicas
    - Ideal for read-heavy workloads
-
-3. **External Service (Optional):**
-```yaml
-cluster:
-  externalService:
-    enabled: true
-    targetInstanceRole: primary  # or 'any'
-```
 
 #### Automatic Failover
 
