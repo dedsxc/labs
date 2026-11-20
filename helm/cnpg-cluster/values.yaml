@@ -7,10 +7,16 @@ cluster:
   # https://cloudnative-pg.io/docs/1.30/replica_cluster
   replica: {}
   
-  # -- Instances number
-  instances: 2
+  # -- Instances number. Empty: global.cnpg.instances, else 2. One node: 1 (two instances on one disk is not HA)
+  instances:
   annotations: {}
   affinity: {}
+
+  # -- Never let Argo CD delete the database: adds argocd.argoproj.io/sync-options Prune=false,Delete=false
+  # to the Cluster (merged with the sync options set in annotations), Delete=false to the backup resources.
+  # Removing the chart from Git, or deleting the Argo CD Application, then keeps the Cluster, its volumes
+  # and its backups running. Delete it on purpose with kubectl delete cluster <name>.
+  keepOnDelete: true
 
   # -- Select image to use
   # imageCatalogRef:
@@ -25,12 +31,14 @@ cluster:
   image:
     name: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie@sha256:d393376fb67a2df53bb09acae89b39b2742b77519b4bc59f337ca9dfb7455cb1
 
+  # storageClass empty: global.cnpg.storageClass, else openebs-hostpath.
+  # Prefer a StorageClass with reclaimPolicy Retain: the data then survives a deleted PVC or namespace.
   storage:
-    storageClass: openebs-hostpath
+    storageClass: ""
     size: 8Gi
   # -- Activate wal storage for high availability
   walStorage:
-    storageClass: openebs-hostpath
+    storageClass: ""
     size: 1Gi
 
   # -- Postgresql configuration
@@ -175,12 +183,49 @@ database:
   list: []
 
 
-# -- Scheduled Backup configuration
+# -- Off-cluster backups in one block (Barman Cloud plugin): an ObjectStore, continuous WAL archiving and a
+# daily ScheduledBackup, i.e. point-in-time recovery. Off until s3.destinationPath is set, here or in
+# global.backup (umbrella charts set it once for every cnpg-cluster subchart; any key set here wins).
+# Needs the plugin-barman-cloud chart next to the CloudNativePG operator (it uses cert-manager).
+# Files go to <destinationPath>/<namespace>/<clusterName>/ (WAL in wals/, base backups in base/).
+# Empty keys use the defaults in brackets.
+backup:
+  # -- false: never back up this cluster, even when global.backup.s3.destinationPath is set
+  enabled: true
+  s3:
+    # -- s3://<bucket>[/<prefix>]. Use a bucket OUTSIDE this Kubernetes cluster: in-cluster storage is lost with it
+    destinationPath: ""
+    # -- S3-compatible endpoint, e.g. https://s3.fr-par.scw.cloud (empty: AWS S3)
+    endpointURL: ""
+    # -- Region, written as ACCESS_REGION in the credentials Secret (empty: none)
+    region: ""
+    # -- Secret in this namespace with ACCESS_KEY_ID and ACCESS_SECRET_KEY [<clusterName>-backup-s3]
+    secretName: ""
+    # -- Copy that Secret with External Secrets from this ClusterSecretStore (empty: the Secret must exist)
+    clusterSecretStore: ""
+    # -- Key of the source Secret in that store (it holds ACCESS_KEY_ID and ACCESS_SECRET_KEY)
+    remoteKey: ""
+  # -- How long base backups and WAL are kept [30d]
+  retentionPolicy: ""
+  # -- Base backup schedule, 6 fields with seconds first ["0 0 2 * * *": 02:00 every day]
+  schedule: ""
+  # -- Resources of the plugin sidecar added to each Postgres pod [requests 10m/64Mi, limit 512Mi]
+  sidecarResources: {}
+  # -- Disaster recovery: a NEW cluster starts from the backups found under <from>/<namespace>/<clusterName>/
+  # (the destinationPath of the lost cluster), then archives to s3.destinationPath, which must be a different
+  # path. Ignored when cluster.bootstrap is set, and by CloudNativePG once the cluster exists.
+  restore:
+    from: ""
+    # -- Point in time to stop at (RFC 3339, e.g. "2026-11-16T10:00:00Z"); empty: the end of the archived WAL
+    targetTime: ""
+
+# -- Scheduled Backup configuration (manual alternative to `backup`: use one or the other)
 scheduledBackup:
   plugin:
     enabled: false
     scheduledBackup: "0 0 0 * * *" # Every day at midnight
     name: barman-cloud.cloudnative-pg.io
+  # Needs a CSI driver with VolumeSnapshot support: NOT OpenEBS hostpath / local-path (no snapshots).
   volumeSnapshot:
     enabled: false
     scheduledBackup: "0 0 0 * * *" # Every day at midnight
@@ -188,25 +233,25 @@ scheduledBackup:
     retentionImage: "debian:trixie-slim" # Must contain curl and jq
 
 
-# -- Object Store configuration
+# -- Object Store configuration (manual alternative to `backup`)
 # objectStore:
 #   enabled: true
 #   name: s3-storage
 #   spec:
 #     configuration:
-#       destinationPath: s3://backup
-#       endpointURL: http://s3.minio.svc.cluster.local:9000
+#       # A bucket outside the cluster (AWS S3, Scaleway, OVH, Cloudflare R2, a MinIO on another machine...)
+#       destinationPath: s3://my-backups/postgres
+#       endpointURL: https://s3.fr-par.scw.cloud
 #       s3Credentials:
 #       # Key should be named as ACCESS_KEY_ID and ACCESS_SECRET_KEY
 #         accessKeyId:
-#           name: s3-minio-secret
-#           key: MINIO_ROOT_USER
+#           name: backup-s3
+#           key: ACCESS_KEY_ID
 #         secretAccessKey:
-#           name: s3-minio-secret
-#           key: MINIO_ROOT_PASSWORD
+#           name: backup-s3
+#           key: ACCESS_SECRET_KEY
 #       wal:
 #         compression: gzip
 #     retentionPolicy: 30d
 objectStore:
   enabled: false
-

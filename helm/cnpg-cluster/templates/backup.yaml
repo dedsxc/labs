@@ -6,7 +6,7 @@ metadata:
   name: {{ printf "%s-cluster-%s-backup" $.Release.Name (lower $key) | default "cloudnative-pg-cluster-backup" }}
 spec:
   cluster:
-    name: {{ printf "%s-cluster" $.Release.Name | default "cloudnative-pg-cluster" }}
+    name: {{ include "cnpg-cluster.name" $ }}
   schedule: "{{ $config.scheduledBackup | default "0 0 0 * * *" }}"
   backupOwnerReference: self
   method: {{ $key }}
