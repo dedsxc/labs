@@ -1,11 +1,13 @@
+{{- $name := include "cnpg-cluster.name" . }}
+{{- $backup := include "cnpg-cluster.backup" . | fromYaml }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: {{ .Values.cluster.clusterName | default (printf "%s-cluster" .Release.Name) }}
+  name: {{ $name }}
   namespace: {{ .Release.Namespace | default "cloudnative-pg" }}
-  {{- with .Values.cluster.annotations }}
+  {{- with include "cnpg-cluster.annotations" (dict "ctx" . "annotations" .Values.cluster.annotations) }}
   annotations:
-    {{- toYaml . | nindent 4 }}
+    {{- . | nindent 4 }}
   {{- end }}
 spec:
   {{- with .Values.cluster.affinity }}
@@ -13,7 +15,8 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  instances: {{ .Values.cluster.instances | default 2 }}
+  # cluster.instances, else global.cnpg.instances, else 2
+  instances: {{ .Values.cluster.instances | default (include "cnpg-cluster.global" (dict "ctx" . "key" "instances")) | default 2 }}
   
   {{- if and .Values.cluster.imageCatalogRef .Values.cluster.imageCatalogRef.name }}
   imageCatalogRef:
@@ -29,13 +32,14 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
+  {{- $storageClass := include "cnpg-cluster.global" (dict "ctx" . "key" "storageClass") | default "openebs-hostpath" }}
   storage:
     size: {{ .Values.cluster.storage.size | default "10Gi" }}
-    storageClass: {{ .Values.cluster.storage.storageClass | default "openebs-hostpath" }}
+    storageClass: {{ .Values.cluster.storage.storageClass | default $storageClass }}
 
   walStorage:
     size: {{ .Values.cluster.walStorage.size | default "4Gi" }}
-    storageClass: {{ .Values.cluster.walStorage.storageClass | default "openebs-hostpath" }}
+    storageClass: {{ .Values.cluster.walStorage.storageClass | default $storageClass }}
 
   {{- with .Values.cluster.resources }}
   resources:
@@ -76,17 +80,35 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   
-  {{- with .Values.cluster.plugins }}
+  {{- $plugins := .Values.cluster.plugins | default list }}
+  {{- if $backup.on }}
+  {{- /* backup: continuous WAL archiving to the ObjectStore of templates/backup-s3.yaml */}}
+  {{- /* enabled: the CRD default, explicit or Argo CD (server-side diff) shows the Cluster OutOfSync forever */}}
+  {{- $plugins = append $plugins (dict "name" "barman-cloud.cloudnative-pg.io" "enabled" true "isWALArchiver" true "parameters" (dict "barmanObjectName" $backup.objectStore)) }}
+  {{- end }}
+  {{- with $plugins }}
   plugins:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- with .Values.cluster.bootstrap }}
+  {{- $bootstrap := .Values.cluster.bootstrap }}
+  {{- $externalClusters := .Values.cluster.externalClusters | default list }}
+  {{- if and $backup.on $backup.restoreFrom (not $bootstrap) }}
+  {{- /* backup.restore.from: a NEW cluster starts from the backups of the old one (same name, other path) */}}
+  {{- /* database/owner/isWALArchiver: CRD defaults, explicit or Argo CD shows the Cluster OutOfSync while restoring */}}
+  {{- $recovery := dict "source" "origin" "database" "app" "owner" "app" }}
+  {{- with (dig "restore" "targetTime" "" $backup) }}
+  {{- $_ := set $recovery "recoveryTarget" (dict "targetTime" .) }}
+  {{- end }}
+  {{- $bootstrap = dict "recovery" $recovery }}
+  {{- $externalClusters = append $externalClusters (dict "name" "origin" "plugin" (dict "name" "barman-cloud.cloudnative-pg.io" "enabled" true "isWALArchiver" false "parameters" (dict "barmanObjectName" (printf "%s-restore" $name) "serverName" $name))) }}
+  {{- end }}
+  {{- with $bootstrap }}
   bootstrap:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- with .Values.cluster.externalClusters }}
+  {{- with $externalClusters }}
   externalClusters:
     {{- toYaml . | nindent 4 }}
   {{- end }}

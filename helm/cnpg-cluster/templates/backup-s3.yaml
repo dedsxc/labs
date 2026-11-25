@@ -1,0 +1,90 @@
+{{- /*
+Off-cluster backups (`backup` values, or global.backup): Barman Cloud plugin ObjectStore + continuous WAL
+archiving (plugin added to the Cluster in cluster.yaml) + a ScheduledBackup, and the S3 credentials copied
+by External Secrets when backup.s3.clusterSecretStore is set. With cluster.keepOnDelete, everything here is
+Delete=false: a Cluster Argo CD keeps after its Application is deleted must keep archiving, or its WAL fills
+the disk. Not Prune=false: switching backups off removes them.
+*/}}
+{{- $name := include "cnpg-cluster.name" . }}
+{{- $b := include "cnpg-cluster.backup" . | fromYaml }}
+{{- if $b.on }}
+{{- $s3 := $b.s3 }}
+{{- $ann := include "cnpg-cluster.annotations" (dict "ctx" . "annotations" dict "skipDryRun" true "deleteOnly" true) }}
+{{- if $s3.clusterSecretStore }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ $b.secretName }}
+  annotations:
+    {{- $ann | nindent 4 }}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: {{ $s3.clusterSecretStore }}
+  target:
+    name: {{ $b.secretName }}
+    template:
+      type: Opaque
+      engineVersion: v2
+      data:
+        ACCESS_KEY_ID: {{`'{{ .ACCESS_KEY_ID }}'`}}
+        ACCESS_SECRET_KEY: {{`'{{ .ACCESS_SECRET_KEY }}'`}}
+        {{- with $s3.region }}
+        ACCESS_REGION: {{ . | quote }}
+        {{- end }}
+  dataFrom:
+    - extract:
+        key: {{ required "backup.s3.remoteKey is required with backup.s3.clusterSecretStore" $s3.remoteKey }}
+{{- end }}
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ $b.objectStore }}
+  annotations:
+    {{- $ann | nindent 4 }}
+spec:
+  retentionPolicy: {{ $b.retentionPolicy | default "30d" | quote }}
+  configuration:
+    {{- include "cnpg-cluster.objectStoreConfiguration" (dict "ctx" . "b" $b "path" $s3.destinationPath) | nindent 4 }}
+  instanceSidecarConfiguration:
+    # The plugin sidecar in every Postgres pod (WAL archiving, base backups)
+    resources:
+      {{- toYaml ($b.sidecarResources | default (dict "requests" (dict "cpu" "10m" "memory" "64Mi") "limits" (dict "memory" "512Mi"))) | nindent 6 }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ $name }}-backup
+  annotations:
+    {{- $ann | nindent 4 }}
+spec:
+  cluster:
+    name: {{ $name }}
+  # 6 fields (seconds first)
+  schedule: {{ $b.schedule | default "0 0 2 * * *" | quote }}
+  # First base backup as soon as backups are switched on, not the next night
+  immediate: true
+  backupOwnerReference: self
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+{{- if $b.restoreFrom }}
+{{- if eq (trimSuffix "/" $b.restoreFrom) (trimSuffix "/" $s3.destinationPath) }}
+{{- fail "backup.restore.from must differ from backup.s3.destinationPath: a restored cluster cannot archive over the backups it starts from" }}
+{{- end }}
+---
+# Read-only source of backup.restore.from, used once when the Cluster is created (bootstrap.recovery)
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ $name }}-restore
+  annotations:
+    {{- include "cnpg-cluster.annotations" (dict "ctx" . "annotations" dict "skipDryRun" true "deleteOnly" true) | nindent 4 }}
+spec:
+  configuration:
+    {{- include "cnpg-cluster.objectStoreConfiguration" (dict "ctx" . "b" $b "path" $b.restoreFrom) | nindent 4 }}
+{{- end }}
+{{- end }}

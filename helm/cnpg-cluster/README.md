@@ -44,6 +44,8 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
       - [scheduledBackup.plugin](#scheduledbackupplugin)
       - [scheduledBackup.volumeSnapshot](#scheduledbackupvolumesnapshot)
     - [objectStore](#objectstore)
+    - [backup (off-cluster backups and restore)](#backup-off-cluster-backups-and-restore)
+    - [global.cnpg and global.backup](#globalcnpg-and-globalbackup)
   - [Generated resources reference](#generated-resources-reference)
   - [Service endpoints](#service-endpoints)
   - [Secret format (auto-generated per database)](#secret-format-auto-generated-per-database)
@@ -51,6 +53,7 @@ A production-ready Helm chart for deploying PostgreSQL clusters using the
     - [Minimal single-instance cluster](#minimal-single-instance-cluster)
     - [HA cluster with multiple databases, monitoring, and S3 backup](#ha-cluster-with-multiple-databases-monitoring-and-s3-backup)
     - [Bootstrap from S3 backup (disaster recovery)](#bootstrap-from-s3-backup-disaster-recovery)
+    - [Backups and disaster recovery with the backup block](#backups-and-disaster-recovery-with-the-backup-block)
     - [Database with extensions, schemas, and logical replication](#database-with-extensions-schemas-and-logical-replication)
     - [Database migration with pgcopydb](#database-migration-with-pgcopydb)
     - [VolumeSnapshot scheduled backup](#volumesnapshot-scheduled-backup)
@@ -75,6 +78,10 @@ cnpg-cluster chart
 ├── templates/backup.yaml          → postgresql.cnpg.io/v1 ScheduledBackup (plugin and/or volumeSnapshot)
 │                                    + v1 ServiceAccount / Role / RoleBinding / CronJob (retention cleaner)
 ├── templates/objectStore.yaml     → barmancloud.cnpg.io/v1 ObjectStore
+├── templates/backup-s3.yaml       → `backup` block: barmancloud.cnpg.io/v1 ObjectStore + postgresql.cnpg.io/v1
+│                                    ScheduledBackup + external-secrets.io/v1 ExternalSecret (S3 keys)
+│                                    (+ a second ObjectStore for backup.restore.from)
+├── templates/_helpers.tpl         → cluster name, global.cnpg / global.backup merging, Argo CD sync options
 ├── templates/podMonitor.yaml      → monitoring.coreos.com/v1 PodMonitor
 ```
 
@@ -94,7 +101,7 @@ All internal Kubernetes Service names follow the CNPG convention:
 | Helm | >= 3.12 | Chart deployment |
 | CloudNativePG operator | >= 1.28.0 | Manages Cluster/Database CRDs |
 | External Secrets Operator | >= 0.10 | Auto-generates DB passwords via `ClusterGenerator` named `password-cluster-generator` |
-| Barman Cloud plugin | >= 0.5 (optional) | S3/MinIO/GCS/Azure WAL archiving and backup |
+| Barman Cloud plugin | >= 0.5 (optional) | S3/MinIO/GCS/Azure WAL archiving and backup. Required by `backup` (chart `plugin-barman-cloud` from https://cloudnative-pg.github.io/charts, in the operator namespace, with cert-manager) |
 | Prometheus Operator | any (optional) | PodMonitor scraping |
 | VolumeSnapshot CRDs | any (optional) | VolumeSnapshot-based backups |
 
@@ -118,6 +125,10 @@ All internal Kubernetes Service names follow the CNPG convention:
 | `scheduledBackup.plugin.enabled: true` | `ScheduledBackup` (barman-cloud method) |
 | `scheduledBackup.volumeSnapshot.enabled: true` | `ScheduledBackup` (volumeSnapshot method) + `ServiceAccount` + `Role` + `RoleBinding` + `CronJob` (retention cleaner) |
 | `objectStore.enabled: true` | `ObjectStore` (barmancloud.cnpg.io) |
+| `backup.s3.destinationPath` (or `global.backup.s3.destinationPath`) set, `backup.enabled` not false | `ObjectStore` `<clusterName>-backup`, `ScheduledBackup` `<clusterName>-backup`, the barman-cloud WAL archiver in `Cluster.spec.plugins` |
+| ... and `backup.s3.clusterSecretStore` set | `ExternalSecret` `<clusterName>-backup-s3` (S3 keys copied from that store) |
+| ... and `backup.restore.from` set | `ObjectStore` `<clusterName>-restore` + `bootstrap.recovery` / `externalClusters` (unless `cluster.bootstrap` is set) |
+| `cluster.keepOnDelete: true` (default) | Argo CD sync options `Prune=false,Delete=false` on the `Cluster`, `Delete=false` on the backup resources above |
 | `cluster.podMonitor.enabled: true` | `PodMonitor` |
 
 ---
@@ -148,8 +159,11 @@ helm template my-postgres . -f values-prod.yaml -n postgresql
 ```yaml
 cluster:
   clusterName: ""              # string — default: "{{ .Release.Name }}-cluster"
-  instances: 2                 # int — number of PostgreSQL instances (1=single, 2+=HA)
+  instances:                   # int — number of PostgreSQL instances (1=single, 2+=HA)
+                               #   empty: global.cnpg.instances, else 2
   annotations: {}              # map[string]string — on the Cluster resource
+  keepOnDelete: true           # bool — Argo CD never prunes/deletes the Cluster (sync options
+                               #   Prune=false,Delete=false merged into annotations, see below)
   affinity: {}                 # map — Kubernetes affinity for cluster pods
   imagePullSecrets: []         # list[{name: string}] — registry pull secrets
                                #   e.g. [{name: private-registries}]
@@ -162,10 +176,11 @@ cluster:
     pullPolicy: IfNotPresent   # Always | IfNotPresent | Never
 
   storage:
-    storageClass: openebs-hostpath   # string — storage class for data PVC
+    storageClass: ""                 # string — storage class for data PVC
+                                      #   empty: global.cnpg.storageClass, else openebs-hostpath
     size: 8Gi                         # string — data PVC size
   walStorage:
-    storageClass: openebs-hostpath   # string — storage class for WAL PVC
+    storageClass: ""                 # string — storage class for WAL PVC (same default)
     size: 1Gi                         # string — WAL PVC size (recommended: 3–5× max_wal_size)
 
   resources: {}                # map — standard Kubernetes resources (requests/limits)
@@ -224,6 +239,19 @@ cluster:
 
 > **Rule:** WAL and data storage use separate PVCs. They can use different storage classes.
 > Both PVCs are created and managed by the CNPG operator; they are NOT deleted on `helm uninstall`.
+> They are owned by the `Cluster`: deleting the `Cluster` deletes them, and with a `Delete` reclaim policy
+> (the default of most StorageClasses, `openebs-hostpath` included) the data goes with them. Use a
+> StorageClass with `reclaimPolicy: Retain` for databases, and keep `cluster.keepOnDelete: true` under Argo CD.
+
+#### cluster.keepOnDelete
+
+`true` by default. Merges `Prune=false,Delete=false` into the `argocd.argoproj.io/sync-options` annotation of
+the `Cluster` (sync options you already set there, such as `SkipDryRunOnMissingResource=true`, are kept), and
+`Delete=false` on the `backup` resources (ObjectStore, ScheduledBackup, S3 credentials). Argo CD then leaves
+the database running when the chart leaves Git or when its Application is deleted, and a cluster kept after
+its Application is deleted keeps archiving its WAL (otherwise its WAL would pile up on the disk). Switching
+`backup` off still removes the backup resources (they are not `Prune=false`). No effect outside Argo CD.
+To really remove the database: `kubectl delete cluster <clusterName>` (then the PVs, if they are `Retain`).
 
 #### cluster.postgresql
 
@@ -524,7 +552,8 @@ scheduledBackup:
 
 #### scheduledBackup.volumeSnapshot
 
-Requires VolumeSnapshot CRDs and a CSI driver that supports snapshots.
+Requires VolumeSnapshot CRDs and a CSI driver that supports snapshots. **Not available on local
+volumes** (OpenEBS hostpath, k3s local-path): they have no snapshot support. Use `backup` there.
 
 ```yaml
 scheduledBackup:
@@ -547,7 +576,11 @@ scheduledBackup:
 ### objectStore
 
 Creates a `barmancloud.cnpg.io/v1 ObjectStore` resource. Required when using the barman-cloud
-plugin for WAL archiving or backup.
+plugin for WAL archiving or backup by hand (`cluster.plugins` + `scheduledBackup.plugin`). The `backup`
+block below does all three in one setting.
+
+> A backup in the same Kubernetes cluster (an in-cluster MinIO or SeaweedFS) is lost with the cluster.
+> Point `destinationPath` at a bucket outside it.
 
 ```yaml
 objectStore:
@@ -555,18 +588,74 @@ objectStore:
   name: s3-storage                  # string — name of the ObjectStore resource
   spec:
     configuration:
-      destinationPath: s3://backup  # string — S3 path
-      endpointURL: http://s3.minio.svc.cluster.local:9000   # string — S3-compatible endpoint
+      destinationPath: s3://my-backups/postgres   # string — S3 path, outside this cluster
+      endpointURL: https://s3.fr-par.scw.cloud    # string — S3-compatible endpoint (omit for AWS)
       s3Credentials:
         accessKeyId:
-          name: s3-minio-secret     # Secret name containing the key
-          key: MINIO_ROOT_USER      # Key name in the Secret (must be ACCESS_KEY_ID or MINIO_ROOT_USER)
+          name: backup-s3           # Secret name containing the key
+          key: ACCESS_KEY_ID        # Key name in the Secret
         secretAccessKey:
-          name: s3-minio-secret
-          key: MINIO_ROOT_PASSWORD  # Key name (must be ACCESS_SECRET_KEY or MINIO_ROOT_PASSWORD)
+          name: backup-s3
+          key: ACCESS_SECRET_KEY    # Key name in the Secret
       wal:
         compression: gzip           # none | gzip | bzip2 | snappy
     retentionPolicy: 30d            # string — backup retention duration
+```
+
+---
+
+### backup (off-cluster backups and restore)
+
+One setting turns on point-in-time recovery: continuous WAL archiving plus a daily base backup to S3, through
+the [Barman Cloud plugin](https://cloudnative-pg.io/plugin-barman-cloud/). Off while `s3.destinationPath` is
+empty. Every empty key is filled from `global.backup` (see below), so an umbrella chart sets it once.
+
+```yaml
+backup:
+  enabled: true                # false: never back up this cluster, even when global.backup is set
+  s3:
+    destinationPath: ""        # s3://bucket[/prefix] — files go to <prefix>/<namespace>/<clusterName>/
+    endpointURL: ""            # S3-compatible endpoint (empty: AWS)
+    region: ""                 # written as ACCESS_REGION in the credentials Secret
+    secretName: ""             # Secret with ACCESS_KEY_ID / ACCESS_SECRET_KEY [<clusterName>-backup-s3]
+    clusterSecretStore: ""     # copy that Secret with External Secrets from this ClusterSecretStore...
+    remoteKey: ""              # ...this key (required with clusterSecretStore)
+  retentionPolicy: ""          # [30d]
+  schedule: ""                 # 6-field cron ["0 0 2 * * *"]
+  sidecarResources: {}         # plugin sidecar in each Postgres pod [requests 10m/64Mi, limit 512Mi]
+  restore:
+    from: ""                   # disaster recovery, see below
+    targetTime: ""             # RFC 3339 point in time; empty = end of the archived WAL
+```
+
+Generated when on: `ObjectStore/<clusterName>-backup`, `ScheduledBackup/<clusterName>-backup`
+(`immediate: true`: the first base backup starts at once), the WAL archiver plugin in the `Cluster`, and
+`ExternalSecret/<clusterName>-backup-s3` if `clusterSecretStore` is set. Adding the plugin restarts the
+Postgres pods once (a sidecar is added).
+
+**Disaster recovery.** On a new Kubernetes cluster, set `restore.from` to the `destinationPath` of the lost
+one and give `s3.destinationPath` a new path. Each new `Cluster` bootstraps from
+`<from>/<namespace>/<clusterName>/` (`bootstrap.recovery`, plugin `externalClusters` entry `origin`), then
+archives to the new path. The chart refuses `from` equal to `destinationPath` (barman will not archive into
+a non-empty archive). CloudNativePG only reads `bootstrap` when it creates a cluster: remove `restore.from`
+once the restore is done.
+
+### global.cnpg and global.backup
+
+Read from `.Values.global`, which Helm passes to every subchart: set them once in an umbrella chart (or a
+values file shared by many releases) instead of in every cnpg-cluster dependency.
+
+```yaml
+global:
+  cnpg:
+    instances: 1                          # default of cluster.instances (else 2)
+    storageClass: openebs-hostpath-retain # default of cluster.storage/walStorage.storageClass (else openebs-hostpath)
+  backup:                                 # same keys as `backup` above; the chart's own values win
+    s3:
+      destinationPath: s3://my-backups/cluster1
+      endpointURL: https://s3.fr-par.scw.cloud
+      clusterSecretStore: backup-s3
+      remoteKey: backup-s3
 ```
 
 ---
@@ -817,6 +906,27 @@ database:
 
 ---
 
+### Backups and disaster recovery with the backup block
+
+```yaml
+# Normal operation: archive to S3 (keys in Secret myapp-cluster-backup-s3: ACCESS_KEY_ID, ACCESS_SECRET_KEY)
+backup:
+  s3:
+    destinationPath: s3://my-backups/prod-1
+    endpointURL: https://s3.fr-par.scw.cloud
+---
+# Disaster recovery on a new cluster: start from prod-1, archive to prod-2 from now on
+backup:
+  s3:
+    destinationPath: s3://my-backups/prod-2
+    endpointURL: https://s3.fr-par.scw.cloud
+  restore:
+    from: s3://my-backups/prod-1
+    # targetTime: "2026-11-16T10:00:00Z"   # point-in-time recovery
+```
+
+---
+
 ### Database with extensions, schemas, and logical replication
 
 ```yaml
@@ -930,7 +1040,7 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 | 2 | **`autoGeneratePassword: true` requires a `ClusterGenerator` named `password-cluster-generator`** in the same namespace. | ExternalSecret objects will remain `NotReady`; databases will have no credentials. |
 | 3 | **All postgresql `parameters` values must be strings.** Even integers: `max_connections: "300"`. | Helm will silently pass an int, causing the CNPG operator to reject the config. |
 | 4 | **WAL PVC size should be 3–5× `max_wal_size`** (default `max_wal_size=1GB` → `3–5Gi`). | WAL partition fills up, causing the cluster to stop and go into `Failover`. |
-| 5 | **PVCs are NOT deleted on `helm uninstall`.** Data and WAL PVCs persist. | Manual cleanup required after decommissioning. Use `kubectl delete pvc` explicitly. |
+| 5 | **PVCs are NOT deleted on `helm uninstall`.** Data and WAL PVCs persist. They ARE deleted with the `Cluster` (owner references). | Manual cleanup required after decommissioning. Use `kubectl delete pvc` explicitly. Deleting the `Cluster` with a `Delete` StorageClass loses the data: use a `Retain` StorageClass. |
 | 6 | **`scheduledBackup` cron uses 6 fields** (`sec min hour dom mon dow`), not standard 5-field cron. | Wrong schedule silently accepted; backups never run. |
 | 7 | **`logicalReplication.subscription.externalClusterName` is REQUIRED** when `subscription.enabled: true`. | Chart render fails with a Helm `fail` error. |
 | 8 | **`recovery.enabled: true` generates a Job with ArgoCD `PostSync` hook.** Outside ArgoCD the Job runs immediately on install. | In ArgoCD, ensure the cluster is fully up before the Job executes (PostSync order). |
@@ -938,6 +1048,9 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 | 10 | **`objectStore` and `scheduledBackup.plugin` are independent.** The ObjectStore defines WHERE to store, the plugin backup defines WHEN to trigger. Both are needed for full barman-cloud backup. | Missing ObjectStore means plugin backups will fail at runtime even if the ScheduledBackup is created. |
 | 11 | **The generated Secret uses `cnpg.io/reload: "true"` label.** The CNPG operator watches for this label to hot-reload credentials. | Removing this label causes the cluster to not pick up password rotations without a restart. |
 | 12 | **`database.databaseReclaimPolicy: retain` (default).** Database CRDs deleted via Helm do NOT drop the PostgreSQL database. | Use `delete` only if you explicitly want the CNPG operator to DROP the database on CRD deletion. |
+| 13 | **`cluster.keepOnDelete: true` (default) keeps the Cluster under Argo CD.** Removing the chart from Git or deleting the Application leaves the database (and its backups) running. | Delete it on purpose: `kubectl delete cluster <clusterName>`. |
+| 14 | **`backup` archives WAL continuously.** If archiving fails (wrong keys, bucket gone), WAL piles up on the disk. | Alert on the `ContinuousArchiving` condition of the Cluster (`kubectl get cluster -o yaml`). |
+| 15 | **`backup.restore.from` is read only when the Cluster is created.** | Remove it after the restore; never point it at `s3.destinationPath`. |
 
 ---
 
@@ -970,6 +1083,10 @@ kubectl cnpg status my-postgres-cluster -n postgresql
 | `scheduledBackup.plugin` | CNPG `ScheduledBackup` using barman-cloud plugin |
 | `scheduledBackup.volumeSnapshot` | CNPG `ScheduledBackup` using VolumeSnapshot + retention `CronJob` |
 | `objectStore` | barmancloud `ObjectStore` CRD (S3/MinIO backend definition) |
+| `backup` | Off-cluster backups in one block: `ObjectStore` + WAL archiving + `ScheduledBackup` + S3 keys, and disaster recovery (`restore.from`) |
+| `cluster.keepOnDelete` | Argo CD `Prune=false,Delete=false` on the `Cluster`, `Delete=false` on the backup resources |
+| `global.cnpg` | Defaults for `cluster.instances` and the storage classes, shared by every subchart |
+| `global.backup` | Defaults for `backup`, shared by every subchart |
 
 3. **Storage:**
    - StorageClass with dynamic provisioning
