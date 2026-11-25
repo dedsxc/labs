@@ -1,4 +1,4 @@
-FROM ollama/ollama:0.40.17
+FROM ollama/ollama:0.40.18
 
 RUN useradd --create-home ollama \
     && apt-get update && apt-get install -y --no-install-recommends curl zstd \
